@@ -42,30 +42,15 @@ parse_image_config <- function(config_path) {
   )
 }
 
-parse_defaults <- function(defaults) {
-  if (is.null(defaults)) {
-    return(list(
-      model = "gemini-2.5-flash-image",
-      style = NULL,
-      `aspect-ratio` = "1:1",
-      resolution = "1K"
-    ))
-  }
-
-  # defaults is a list of single-key lists, flatten it
-  result <- list(
+parse_defaults <- function(values) {
+  defaults <- list(
     model = "gemini-2.5-flash-image",
     style = NULL,
     `aspect-ratio` = "1:1",
     resolution = "1K"
   )
 
-  for (item in defaults) {
-    name <- names(item)[[1]]
-    result[[name]] <- item[[name]]
-  }
-
-  result
+  utils::modifyList(defaults, values %||% list())
 }
 
 parse_images <- function(images, defaults) {
