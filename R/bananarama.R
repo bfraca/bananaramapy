@@ -27,35 +27,31 @@ bananarama <- function(
     dir.create(output_dir, recursive = TRUE)
   }
 
-  # Sort images by dependencies
+  # Sort images by dependencies and preprocess
+
   images <- sort_by_dependencies(config$images)
+  images <- preprocess_images(images, config$base_dir, output_dir)
 
   # Track generated images for builds-on chains
   generated <- list()
   output_paths <- character()
 
   for (image in images) {
-    output_path <- file.path(output_dir, paste0(image$name, ".png"))
-    output_paths <- c(output_paths, output_path)
+    output_paths <- c(output_paths, image$output_path)
 
-    if (!force && file.exists(output_path)) {
+    if (!force && file.exists(image$output_path)) {
       cli::cli_alert_info("Skipping {.val {image$name}} (already exists)")
       generated[[image$name]] <- list(
-        output_path = output_path,
+        output_path = image$output_path,
         prompt = image$prompt,
-        ref_images = NULL
+        ref_images = image$ref_image_paths
       )
       next
     }
 
     cli::cli_alert("Generating {.val {image$name}}...")
 
-    result <- generate_single_image(
-      image_spec = image,
-      base_dir = config$base_dir,
-      output_path = output_path,
-      generated = generated
-    )
+    result <- generate_single_image(image, generated)
 
     generated[[image$name]] <- result
     cli::cli_alert_success("Generated {.val {image$name}}")
@@ -64,16 +60,21 @@ bananarama <- function(
   invisible(output_paths)
 }
 
-generate_single_image <- function(
-  image_spec,
-  base_dir,
-  output_path,
-  generated
-) {
-  resolved <- resolve_placeholders(image_spec$description, base_dir)
-  prompt <- build_prompt(resolved$text, image_spec$style)
-  images <- lapply(resolved$images, ellmer::content_image_file)
+preprocess_images <- function(images, base_dir, output_dir) {
+  lapply(images, function(image) {
+    resolved <- resolve_placeholders(image$description, base_dir)
+    prompt <- build_prompt(resolved$text, image$style)
+    ref_images <- lapply(resolved$images, ellmer::content_image_file)
 
+    image$output_path <- file.path(output_dir, paste0(image$name, ".png"))
+    image$prompt <- prompt
+    image$ref_image_paths <- resolved$images
+    image$ref_images <- ref_images
+    image
+  })
+}
+
+generate_single_image <- function(image_spec, generated) {
   image_config <- list(aspectRatio = image_spec$`aspect-ratio`)
   if (image_spec$model == "gemini-3-pro-image-preview") {
     image_config$imageSize <- image_spec$resolution
@@ -92,13 +93,13 @@ generate_single_image <- function(
     replay_chain(chat, builds_on, generated)
   }
 
-  chat$chat(prompt, !!!images)
-  save_generated_image(chat, output_path)
+  chat$chat(image_spec$prompt, !!!image_spec$ref_images)
+  save_generated_image(chat, image_spec$output_path)
 
   list(
-    output_path = output_path,
-    prompt = prompt,
-    ref_images = resolved$images
+    output_path = image_spec$output_path,
+    prompt = image_spec$prompt,
+    ref_images = image_spec$ref_image_paths
   )
 }
 
