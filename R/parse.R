@@ -101,6 +101,10 @@ check_resolution <- function(value, name) {
 }
 
 resolve_placeholders <- function(description, base_dir, start_index = 0) {
+  if (is.null(description)) {
+    return(list(text = NULL, images = character()))
+  }
+
   # Find all [name] patterns
 
   pattern <- "\\[([^\\]]+)\\]"
@@ -146,12 +150,4 @@ find_image_file <- function(name, base_dir) {
     "Cannot find reference image for {.val {name}}.",
     i = "Looked for {.file {name}.png}, {.file {name}.jpg}, etc. in {.path {base_dir}}."
   ))
-}
-
-build_prompt <- function(description, style) {
-  if (is.null(style) || style == "") {
-    description
-  } else {
-    paste0(style, "\n\n", description)
-  }
 }

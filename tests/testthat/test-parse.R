@@ -131,18 +131,3 @@ test_that("find_image_file errors on missing file", {
     "Cannot find reference image"
   )
 })
-
-test_that("build_prompt combines style and description", {
-  result <- build_prompt("Draw a cat", "Watercolor style")
-  expect_equal(result, "Watercolor style\n\nDraw a cat")
-})
-
-test_that("build_prompt handles NULL style", {
-  result <- build_prompt("Draw a cat", NULL)
-  expect_equal(result, "Draw a cat")
-})
-
-test_that("build_prompt handles empty style", {
-  result <- build_prompt("Draw a cat", "")
-  expect_equal(result, "Draw a cat")
-})
