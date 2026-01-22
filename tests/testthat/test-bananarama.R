@@ -21,7 +21,7 @@ test_that("preprocess_images adds prompt, paths, and ref_images", {
 
   expect_equal(
     result[[1]]$prompt,
-    "Watercolor\n\nA cat (shown in image 1) sitting"
+    "A cat (shown in image 1) sitting\n\nStyle: Watercolor"
   )
   expect_equal(result[[1]]$output_path, file.path(output_dir, "img1.png"))
   expect_equal(result[[1]]$ref_image_paths, file.path(tmp, "cat.png"))
@@ -49,7 +49,7 @@ test_that("preprocess_images handles placeholders in style", {
 
   expect_equal(
     result[[1]]$prompt,
-    "In the style of monet (shown in image 1)\n\nA cat (shown in image 2) sitting"
+    "A cat (shown in image 2) sitting\n\nStyle: In the style of monet (shown in image 1)"
   )
   expect_equal(
     result[[1]]$ref_image_paths,

@@ -63,13 +63,14 @@ bananarama <- function(
 preprocess_images <- function(images, base_dir, output_dir) {
   lapply(images, function(image) {
     resolved_style <- resolve_placeholders(image$style, base_dir)
-    resolved_desc <- resolve_placeholders(
-      image$description,
-      base_dir,
-      length(resolved_style$images)
-    )
+
+    n <- length(resolved_style$images)
+    resolved_desc <- resolve_placeholders(image$description, base_dir, n)
     prompt <- paste(
-      c(resolved_style$text, resolved_desc$text),
+      c(
+        resolved_desc$text,
+        paste0("Style: ", resolved_style$text, recycle0 = TRUE)
+      ),
       collapse = "\n\n"
     )
     ref_image_paths <- c(resolved_style$images, resolved_desc$images)
@@ -90,6 +91,8 @@ generate_single_image <- function(image_spec, generated) {
   }
 
   chat <- ellmer::chat_google_gemini(
+    "Draw a picture based on the user's description, carefully following their 
+    specified style. Do not include text unless explicitly requested.",
     model = image_spec$model,
     api_args = list(
       generationConfig = list(imageConfig = image_config)
