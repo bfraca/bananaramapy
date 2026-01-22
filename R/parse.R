@@ -62,7 +62,7 @@ parse_images <- function(images, defaults) {
   })
 }
 
-resolve_placeholders <- function(description, base_dir) {
+resolve_placeholders <- function(description, base_dir, start_index = 0) {
   # Find all [name] patterns
 
   pattern <- "\\[([^\\]]+)\\]"
@@ -86,7 +86,7 @@ resolve_placeholders <- function(description, base_dir) {
     images <- c(images, image_path)
 
     # Replace [name] with "name (shown in image N)"
-    ordinal <- i
+    ordinal <- start_index + i
     replacement <- paste0(name, " (shown in image ", ordinal, ")")
     text <- sub(paste0("\\[", name, "\\]"), replacement, text, fixed = FALSE)
   }

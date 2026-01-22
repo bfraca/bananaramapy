@@ -62,13 +62,19 @@ bananarama <- function(
 
 preprocess_images <- function(images, base_dir, output_dir) {
   lapply(images, function(image) {
-    resolved <- resolve_placeholders(image$description, base_dir)
-    prompt <- build_prompt(resolved$text, image$style)
-    ref_images <- lapply(resolved$images, ellmer::content_image_file)
+    resolved_style <- resolve_placeholders(image$style %||% "", base_dir)
+    resolved_desc <- resolve_placeholders(
+      image$description,
+      base_dir,
+      length(resolved_style$images)
+    )
+    prompt <- build_prompt(resolved_desc$text, resolved_style$text)
+    ref_image_paths <- c(resolved_style$images, resolved_desc$images)
+    ref_images <- lapply(ref_image_paths, ellmer::content_image_file)
 
     image$output_path <- file.path(output_dir, paste0(image$name, ".png"))
     image$prompt <- prompt
-    image$ref_image_paths <- resolved$images
+    image$ref_image_paths <- ref_image_paths
     image$ref_images <- ref_images
     image
   })
