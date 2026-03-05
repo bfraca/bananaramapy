@@ -25,7 +25,7 @@ parse_image_config <- function(config_path) {
 
 parse_defaults <- function(values) {
   defaults <- list(
-    model = "gemini-2.5-flash-image",
+    model = "gemini-3.1-flash-image-preview",
     style = NULL,
     `aspect-ratio` = "1:1",
     resolution = "1K"
