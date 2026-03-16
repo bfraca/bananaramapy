@@ -26,6 +26,7 @@ parse_image_config <- function(config_path) {
 parse_defaults <- function(values) {
   defaults <- list(
     model = "gemini-3.1-flash-image-preview",
+    description = NULL,
     style = NULL,
     `aspect-ratio` = "1:1",
     resolution = "1K"
@@ -46,7 +47,8 @@ parse_image <- function(img, defaults) {
   if (is.null(img$name)) {
     cli::cli_abort("Each image must have a {.field name} field.")
   }
-  if (is.null(img$description)) {
+  description <- img$description %||% defaults$description
+  if (is.null(description)) {
     cli::cli_abort(
       "Image {.val {img$name}} must have a {.field description} field."
     )
@@ -60,7 +62,7 @@ parse_image <- function(img, defaults) {
 
   list(
     name = img$name,
-    description = img$description,
+    description = description,
     `builds-on` = img$`builds-on`,
     model = img$model %||% defaults$model,
     style = img$style %||% defaults$style,

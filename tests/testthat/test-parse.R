@@ -1,6 +1,6 @@
 test_that("parse_defaults handles missing defaults", {
   result <- parse_defaults(NULL)
-  expect_equal(result$model, "gemini-2.5-flash-image")
+  expect_equal(result$model, "gemini-3.1-flash-image-preview")
   expect_null(result$style)
   expect_equal(result$`aspect-ratio`, "1:1")
   expect_equal(result$resolution, "1K")
@@ -25,7 +25,20 @@ test_that("parse_image errors on missing name", {
 })
 
 test_that("parse_image errors on missing description", {
-  expect_error(parse_image(list(name = "test"), list()), "description")
+  defaults <- parse_defaults(NULL)
+  expect_error(parse_image(list(name = "test"), defaults), "description")
+})
+
+test_that("parse_image uses description from defaults", {
+  defaults <- parse_defaults(list(description = "default desc"))
+  result <- parse_image(list(name = "test", style = "watercolor"), defaults)
+  expect_equal(result$description, "default desc")
+
+  result <- parse_image(
+    list(name = "test", description = "custom desc"),
+    defaults
+  )
+  expect_equal(result$description, "custom desc")
 })
 
 test_that("parse_image merges defaults with overrides", {
