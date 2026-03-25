@@ -31,24 +31,55 @@ bananarama <- function(
 
   images <- preprocess_images(config$images, config$base_dir, output_dir)
 
-  output_paths <- character()
-  for (image in images) {
-    for (output_path in image$output_paths) {
-      output_paths <- c(output_paths, output_path)
-      label <- basename(output_path)
+  # Figure out which images need to be generated
+  tasks <- build_tasks(images, force = force)
+  if (length(tasks) == 0) {
+    return(invisible(all_output_paths(images)))
+  }
 
-      if (!force && file.exists(output_path)) {
-        cli::cli_alert_info("Skipping {.val {label}} (already exists)")
-        next
-      }
+  # Generate all images in parallel
+  chat <- make_chat(tasks[[1]]$image)
+  prompts <- lapply(tasks, function(task) {
+    c(list(ellmer::ContentText(task$image$prompt)), task$image$ref_images)
+  })
 
-      cli::cli_alert("Generating {.val {label}}...")
-      generate_single_image(image, output_path)
+  cli::cli_alert("Generating {length(tasks)} image{?s} in parallel...")
+  results <- ellmer::parallel_chat(chat, prompts)
+
+  for (i in seq_along(tasks)) {
+    result <- results[[i]]
+    output_path <- tasks[[i]]$output_path
+    label <- basename(output_path)
+
+    if (inherits(result, "error") || is.null(result)) {
+      cli::cli_alert_danger("Failed to generate {.val {label}}")
+    } else {
+      save_generated_image(result, output_path)
       cli::cli_alert_success("Generated {.val {label}}")
     }
   }
 
-  invisible(output_paths)
+  invisible(all_output_paths(images))
+}
+
+build_tasks <- function(images, force = FALSE) {
+  tasks <- list()
+  for (image in images) {
+    for (output_path in image$output_paths) {
+      if (!force && file.exists(output_path)) {
+        cli::cli_alert_info(
+          "Skipping {.val {basename(output_path)}} (already exists)"
+        )
+        next
+      }
+      tasks <- c(tasks, list(list(image = image, output_path = output_path)))
+    }
+  }
+  tasks
+}
+
+all_output_paths <- function(images) {
+  unlist(lapply(images, function(image) image$output_paths))
 }
 
 preprocess_images <- function(images, base_dir, output_dir) {
@@ -87,13 +118,13 @@ preprocess_image <- function(image, base_dir, output_dir) {
   image
 }
 
-generate_single_image <- function(image_spec, output_path) {
+make_chat <- function(image_spec) {
   image_config <- list(aspectRatio = image_spec$`aspect-ratio`)
   if (image_spec$model == "gemini-3-pro-image-preview") {
     image_config$imageSize <- image_spec$resolution
   }
 
-  chat <- ellmer::chat_google_gemini(
+  ellmer::chat_google_gemini(
     "Draw a picture based on the user's description, carefully following their
     specified style. Do not include text unless explicitly requested.",
     model = image_spec$model,
@@ -101,9 +132,6 @@ generate_single_image <- function(image_spec, output_path) {
       generationConfig = list(imageConfig = image_config)
     )
   )
-
-  chat$chat(image_spec$prompt, !!!image_spec$ref_images)
-  save_generated_image(chat, output_path)
 }
 
 save_generated_image <- function(chat, output_path) {
