@@ -5,3 +5,7 @@
 ^\.vscode$
 ^LICENSE\.md$
 ^demo$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$

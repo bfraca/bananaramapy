@@ -10,7 +10,7 @@ Description: Generate presentation images using Google Gemini's image
     configuration file with support for reference images, style defaults,
     and image dependencies.
 License: MIT + file LICENSE
-URL: https://github.com/hadley/bananarama
+URL: https://github.com/hadley/bananarama, https://hadley.github.io/bananarama/
 BugReports: https://github.com/hadley/bananarama/issues
 Imports:
     cli,
@@ -26,3 +26,4 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3.9000
+Config/Needs/website: tidyverse/tidytemplate
