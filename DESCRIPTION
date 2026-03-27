@@ -5,20 +5,24 @@ Authors@R: c(
     person("Hadley", "Wickham", , "hadley@posit.co", role = c("aut", "cre")),
     person("Posit Software, PBC", role = c("cph", "fnd"))
   )
-Description: Generate presentation images using Google Gemini's image generation
-    capabilities (nanobanana). Define images in a YAML configuration file with
-    support for reference images, style defaults, and image dependencies.
+Description: Generate presentation images using Google Gemini's image
+    generation capabilities (nanobanana). Define images in a YAML
+    configuration file with support for reference images, style defaults,
+    and image dependencies.
 License: MIT + file LICENSE
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3.9000
+URL: https://github.com/hadley/bananarama
+BugReports: https://github.com/hadley/bananarama/issues
 Imports:
     cli,
     ellmer,
+    openssl,
+    magick,
     yaml12
 Suggests:
+    png,
     testthat (>= 3.0.0),
     withr
 Config/testthat/edition: 3
-URL: https://github.com/hadley/bananarama
-BugReports: https://github.com/hadley/bananarama/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3.9000

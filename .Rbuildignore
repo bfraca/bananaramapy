@@ -3,3 +3,5 @@
 ^\.claude$
 ^[.]?air[.]toml$
 ^\.vscode$
+^LICENSE\.md$
+^demo$

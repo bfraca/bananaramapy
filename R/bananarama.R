@@ -142,8 +142,5 @@ save_generated_image <- function(chat, output_path) {
     function(x) inherits(x, "ellmer::ContentImageInline"),
     turn@contents
   )
-  writeBin(
-    base64enc::base64decode(image_content@data),
-    output_path
-  )
+  writeBin(openssl::base64_decode(image_content@data), output_path)
 }
