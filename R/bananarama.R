@@ -48,9 +48,11 @@ bananarama <- function(
   cli::cli_alert("Generating {length(tasks)} image{?s} in parallel...")
   results <- ellmer::parallel_chat(chat, prompts)
 
+  total_cost <- 0
   for (i in seq_along(tasks)) {
     result <- results[[i]]
     output_path <- tasks[[i]]$output_path
+    model <- tasks[[i]]$image$model
     label <- basename(output_path)
 
     if (inherits(result, "error") || is.null(result)) {
@@ -60,8 +62,16 @@ bananarama <- function(
         "Failed to generate {.val {label}} (no image in response)"
       )
     } else {
-      cli::cli_alert_success("Generated {.val {label}}")
+      cost <- image_cost(result, model)
+      total_cost <- total_cost + cost
+      cli::cli_alert_success(
+        "Generated {.val {label}} (${round(cost, 3)})"
+      )
     }
+  }
+
+  if (total_cost > 0) {
+    cli::cli_alert_info("Total cost: ${round(total_cost, 3)}")
   }
 
   invisible(all_output_paths(images))
@@ -69,16 +79,18 @@ bananarama <- function(
 
 build_tasks <- function(images, force = FALSE) {
   tasks <- list()
+  n_skipped <- 0L
   for (image in images) {
     for (output_path in image$output_paths) {
       if (!force && !image$force && file.exists(output_path)) {
-        cli::cli_alert_info(
-          "Skipping {.val {basename(output_path)}} (already exists)"
-        )
+        n_skipped <- n_skipped + 1L
         next
       }
       tasks <- c(tasks, list(list(image = image, output_path = output_path)))
     }
+  }
+  if (n_skipped > 0) {
+    cli::cli_alert_info("Skipping {n_skipped} image{?s} (already exist{?s})")
   }
   tasks
 }
@@ -142,6 +154,45 @@ make_chat <- function(image_spec) {
       generationConfig = gen_config
     )
   )
+}
+
+# Prices per million tokens, by model and modality.
+# Update this list when new models or pricing tiers are released.
+model_prices <- list(
+  "gemini-3.1-flash-image-preview" = list(
+    input = list(text = 0.50, image = 0.50),
+    output = list(text = 3.00, image = 60.00)
+  ),
+  "gemini-3-pro-image-preview" = list(
+    input = list(text = 1.25, image = 1.25),
+    output = list(text = 5.00, image = 60.00)
+  )
+)
+
+image_cost <- function(chat, model) {
+  turn <- chat$last_turn()
+  usage <- turn@json$usageMetadata
+
+  prices <- model_prices[[model]]
+  if (is.null(prices)) {
+    return(0)
+  }
+
+  input_cost <- 0
+  for (detail in usage$promptTokensDetails) {
+    modality <- tolower(detail$modality)
+    price <- prices$input[[modality]] %||% prices$input$text
+    input_cost <- input_cost + detail$tokenCount * price / 1e6
+  }
+
+  output_cost <- 0
+  for (detail in usage$candidatesTokensDetails) {
+    modality <- tolower(detail$modality)
+    price <- prices$output[[modality]] %||% prices$output$text
+    output_cost <- output_cost + detail$tokenCount * price / 1e6
+  }
+
+  input_cost + output_cost
 }
 
 save_generated_image <- function(chat, output_path) {
