@@ -55,8 +55,11 @@ bananarama <- function(
 
     if (inherits(result, "error") || is.null(result)) {
       cli::cli_alert_danger("Failed to generate {.val {label}}")
+    } else if (!save_generated_image(result, output_path)) {
+      cli::cli_alert_danger(
+        "Failed to generate {.val {label}} (no image in response)"
+      )
     } else {
-      save_generated_image(result, output_path)
       cli::cli_alert_success("Generated {.val {label}}")
     }
   }
@@ -142,5 +145,21 @@ save_generated_image <- function(chat, output_path) {
     function(x) inherits(x, "ellmer::ContentImageInline"),
     turn@contents
   )
+  if (is.null(image_content)) {
+    text <- paste(
+      vapply(
+        Filter(function(x) inherits(x, "ellmer::ContentText"), turn@contents),
+        function(x) x@text,
+        character(1)
+      ),
+      collapse = "\n"
+    )
+    cli::cli_warn(c(
+      "Gemini did not return an image for {.val {basename(output_path)}}.",
+      i = if (nzchar(text)) "Response: {text}"
+    ))
+    return(invisible(FALSE))
+  }
   writeBin(openssl::base64_decode(image_content@data), output_path)
+  invisible(TRUE)
 }
