@@ -1,6 +1,8 @@
 #' @keywords internal
 "_PACKAGE"
 
+the <- new.env(parent = emptyenv())
+
 # Silence R CMD check warning
 unused <- function() {
   # Use via ellmer::content_image()

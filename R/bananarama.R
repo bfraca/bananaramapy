@@ -31,12 +31,17 @@ bananarama <- function(
     dir.create(output_dir, recursive = TRUE)
   }
 
-  images <- preprocess_images(config$images, config$base_dir, output_dir)
+  images <- compute_output_paths(config$images, output_dir)
 
   # Figure out which images need to be generated
   tasks <- build_tasks(images, force = force)
   if (length(tasks) == 0) {
     return(invisible(all_output_paths(images)))
+  }
+
+  # Preprocess only the images that need generation
+  for (i in seq_along(tasks)) {
+    tasks[[i]]$image <- preprocess_image(tasks[[i]]$image, config$base_dir)
   }
 
   # Generate all images in parallel
@@ -99,11 +104,23 @@ all_output_paths <- function(images) {
   unlist(lapply(images, function(image) image$output_paths))
 }
 
-preprocess_images <- function(images, base_dir, output_dir) {
-  lapply(images, preprocess_image, base_dir = base_dir, output_dir = output_dir)
+compute_output_paths <- function(images, output_dir) {
+  lapply(images, function(image) {
+    n <- image[["n"]] %||% 1L
+    if (n > 1L) {
+      suffixed_names <- paste0(image$name, "-", seq_len(n))
+    } else {
+      suffixed_names <- image$name
+    }
+    image$output_paths <- file.path(
+      output_dir,
+      paste0(suffixed_names, ".png")
+    )
+    image
+  })
 }
 
-preprocess_image <- function(image, base_dir, output_dir) {
+preprocess_image <- function(image, base_dir) {
   resolved_style <- resolve_placeholders(image$style, base_dir)
 
   n <- length(resolved_style$images)
@@ -116,22 +133,11 @@ preprocess_image <- function(image, base_dir, output_dir) {
     collapse = "\n\n"
   )
   ref_image_paths <- c(resolved_style$images, resolved_desc$images)
-  ref_images <- lapply(ref_image_paths, ellmer::content_image_file)
+  ref_images <- lapply(ref_image_paths, get_reference_image)
 
   image$prompt <- prompt
   image$ref_image_paths <- ref_image_paths
   image$ref_images <- ref_images
-
-  n <- image[["n"]] %||% 1L
-  if (n > 1L) {
-    suffixed_names <- paste0(image$name, "-", seq_len(n))
-  } else {
-    suffixed_names <- image$name
-  }
-  image$output_paths <- file.path(
-    output_dir,
-    paste0(suffixed_names, ".png")
-  )
   image
 }
 
@@ -193,6 +199,31 @@ image_cost <- function(chat, model) {
   }
 
   input_cost + output_cost
+}
+
+get_reference_image <- function(path) {
+  rlang::env_cache(the, path, {
+    resize_reference_image(path)
+    ellmer::content_image_file(path, resize = "none")
+  })
+}
+
+resize_reference_image <- function(path, max_size = "512x512") {
+  img <- magick::image_read(path, strip = TRUE)
+  info <- magick::image_info(img)
+
+  resized <- magick::image_resize(img, paste0(max_size, ">"))
+  resized_info <- magick::image_info(resized)
+
+  if (info$width == resized_info$width && info$height == resized_info$height) {
+    return(invisible(FALSE))
+  }
+
+  magick::image_write(resized, path, format = info$format)
+  cli::cli_alert_info(
+    "Resizing {.path {basename(path)}} from {info$width}x{info$height} to {resized_info$width}x{resized_info$height}"
+  )
+  invisible(TRUE)
 }
 
 save_generated_image <- function(chat, output_path) {
