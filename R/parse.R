@@ -32,7 +32,8 @@ parse_defaults <- function(values) {
     `aspect-ratio` = "16:9",
     resolution = "1K",
     n = 1L,
-    force = FALSE
+    force = FALSE,
+    seed = NULL
   )
 
   utils::modifyList(defaults, values %||% list())
@@ -69,6 +70,7 @@ parse_image <- function(img, defaults) {
   }
 
   force <- img$force %||% defaults$force %||% FALSE
+  seed <- img$seed %||% defaults$seed
 
   list(
     name = img$name,
@@ -78,7 +80,8 @@ parse_image <- function(img, defaults) {
     `aspect-ratio` = aspect_ratio,
     resolution = resolution,
     n = n,
-    force = force
+    force = force,
+    seed = seed
   )
 }
 

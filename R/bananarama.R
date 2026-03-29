@@ -129,12 +129,17 @@ make_chat <- function(image_spec) {
     image_config$imageSize <- image_spec$resolution
   }
 
+  gen_config <- list(imageConfig = image_config)
+  if (!is.null(image_spec$seed)) {
+    gen_config$seed <- as.integer(image_spec$seed)
+  }
+
   ellmer::chat_google_gemini(
     "Draw a picture based on the user's description, carefully following their
     specified style. Do not include text unless explicitly requested.",
     model = image_spec$model,
     api_args = list(
-      generationConfig = list(imageConfig = image_config)
+      generationConfig = gen_config
     )
   )
 }

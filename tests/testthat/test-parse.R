@@ -89,6 +89,22 @@ test_that("parse_image uses force from defaults and overrides", {
   expect_false(result$force)
 })
 
+test_that("parse_image uses seed from defaults and overrides", {
+  defaults <- parse_defaults(NULL)
+  result <- parse_image(list(name = "test", description = "desc"), defaults)
+  expect_null(result$seed)
+
+  defaults <- parse_defaults(list(seed = 42))
+  result <- parse_image(list(name = "test", description = "desc"), defaults)
+  expect_equal(result$seed, 42)
+
+  result <- parse_image(
+    list(name = "test", description = "desc", seed = 99),
+    defaults
+  )
+  expect_equal(result$seed, 99)
+})
+
 test_that("parse_image errors on invalid aspect-ratio", {
   defaults <- parse_defaults(NULL)
   img <- list(name = "test", description = "desc", `aspect-ratio` = "5:3")
