@@ -19,6 +19,7 @@ Imports:
     ellmer,
     magick,
     openssl,
+    rlang,
     yaml12
 Suggests:
     png,

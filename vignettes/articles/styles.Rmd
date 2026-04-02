@@ -17,15 +17,7 @@ To help get your create juices flowing, this vignette shows a banana rendered in
 #| include: false
 library(bananarama)
 paths <- bananarama("styles.yml")
-
-library(magick)
-files <- list.files("vignettes/articles/styles", full.names = TRUE)
-for (file in files) {
-  img <- image_read(file)
-  img <- image_resize(img, "300x")
-  image_write(img, file)
-  cat("Resized", file, "\n")
-}
+bananarama:::resize_images("vignettes/articles/styles")
 ```
 
 ```{r}

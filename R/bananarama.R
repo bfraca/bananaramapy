@@ -44,14 +44,31 @@ bananarama <- function(
     tasks[[i]]$image <- preprocess_image(tasks[[i]]$image, config$base_dir)
   }
 
-  # Generate all images in parallel
-  chat <- make_chat(tasks[[1]]$image)
-  prompts <- lapply(tasks, function(task) {
-    c(list(ellmer::ContentText(task$image$prompt)), task$image$ref_images)
-  })
+  # Group tasks by chat config (model, seed, aspect-ratio, resolution)
+  # so each group gets the correct seed
+  chat_key <- function(task) {
+    img <- task$image
+    rlang::hash(list(img$model, img$seed, img$`aspect-ratio`, img$resolution))
+  }
+  task_groups <- split(tasks, vapply(tasks, chat_key, character(1)))
 
   cli::cli_alert("Generating {length(tasks)} image{?s} in parallel...")
-  results <- ellmer::parallel_chat(chat, prompts)
+  results <- vector("list", length(tasks))
+  for (group in task_groups) {
+    chat <- make_chat(group[[1]]$image)
+    prompts <- lapply(group, function(task) {
+      c(list(ellmer::ContentText(task$image$prompt)), task$image$ref_images)
+    })
+    group_results <- ellmer::parallel_chat(chat, prompts)
+
+    for (i in seq_along(group)) {
+      idx <- match(
+        group[[i]]$output_path,
+        vapply(tasks, `[[`, character(1), "output_path")
+      )
+      results[[idx]] <- group_results[[i]]
+    }
+  }
 
   total_cost <- 0
   for (i in seq_along(tasks)) {
