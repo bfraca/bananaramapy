@@ -1,6 +1,8 @@
 # bananarama <a href="https://hadley.github.io/bananarama/"><img src="man/figures/logo.png" align="right" height="136" alt="bananarama website" /></a>
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/hadley/bananarama/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hadley/bananarama/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/hadley/bananarama/graph/badge.svg)](https://app.codecov.io/gh/hadley/bananarama)
 <!-- badges: end -->
 
 bananarama generates slide backgrounds with Google Gemini. Define your images in a YAML configuration file with support for reference images and style defaults, then generate images in parallel, making it fast to generate full deck of images.
