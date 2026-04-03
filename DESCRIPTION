@@ -27,7 +27,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     withr
-Config/Needs/website: tidyverse/tidytemplate, rmarkdown
+Config/Needs/website: tidyverse/tidytemplate, quarto
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
