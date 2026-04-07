@@ -4,15 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import contextlib
 from typing import Any
 
 from bananarama.models.base import ImageProvider, ImageRequest, ImageResult, TokenUsage
 from bananarama.models.sizing import resolve_dimensions
-
-_NOT_GIVEN: Any = None
-with contextlib.suppress(ImportError):
-    from together._types import NOT_GIVEN as _NOT_GIVEN
 
 FLUX_MODELS = [
     "flux-2-pro",
@@ -54,18 +49,19 @@ class FluxProvider(ImageProvider):
             request.aspect_ratio, request.resolution, provider="flux"
         )
 
-        seed: Any = request.seed if request.seed is not None else _NOT_GIVEN
+        # Build kwargs dynamically to avoid SDK type-stub version mismatches.
+        kwargs: dict[str, Any] = {
+            "model": self._together_model,
+            "prompt": request.prompt,
+            "width": width,
+            "height": height,
+            "n": 1,
+            "response_format": "b64_json",
+        }
+        if request.seed is not None:
+            kwargs["seed"] = request.seed
 
-        fmt: Any = "b64_json"
-        response = await self._client.images.generate(
-            model=self._together_model,
-            prompt=request.prompt,
-            width=width,
-            height=height,
-            n=1,
-            response_format=fmt,
-            seed=seed,
-        )
+        response = await self._client.images.generate(**kwargs)
 
         item = response.data[0]
         b64_data = getattr(item, "b64_json", None)
