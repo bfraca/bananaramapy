@@ -15,8 +15,13 @@ from bananarama.config import (
     resolve_config_path,
 )
 from bananarama.costs.pricing import compute_cost
-from bananarama.images import resize_reference_image, resolve_placeholders, split_image
-from bananarama.models.base import ImageRequest, ImageResult
+from bananarama.images import (
+    mime_type_for_path,
+    resize_reference_image,
+    resolve_placeholders,
+    split_image,
+)
+from bananarama.models.base import ImageRequest, ImageResult, ReferenceImage
 from bananarama.models.registry import get_provider
 
 console = Console()
@@ -29,7 +34,7 @@ class Task:
     image: ImageSpec
     output_path: Path
     prompt: str = ""
-    reference_images: list[bytes] = None  # type: ignore[assignment]
+    reference_images: list[ReferenceImage] = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         if self.reference_images is None:
@@ -98,11 +103,16 @@ def preprocess_task(task: Task, base_dir: Path) -> None:
 
     # Load and resize reference images
     all_image_paths = style_images + desc_images
-    ref_bytes: list[bytes] = []
+    refs: list[ReferenceImage] = []
     for img_path in all_image_paths:
         resize_reference_image(img_path)
-        ref_bytes.append(img_path.read_bytes())
-    task.reference_images = ref_bytes
+        refs.append(
+            ReferenceImage(
+                data=img_path.read_bytes(),
+                mime_type=mime_type_for_path(img_path),
+            )
+        )
+    task.reference_images = refs
 
 
 async def bananarama(

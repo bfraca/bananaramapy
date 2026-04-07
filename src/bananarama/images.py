@@ -16,6 +16,22 @@ IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 MAX_REFERENCE_SIZE = (512, 512)
 PLACEHOLDER_PATTERN = re.compile(r"\[([^\]]+)\]")
 
+_EXT_TO_MIME: dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
+
+
+def mime_type_for_path(path: Path) -> str:
+    """Return the MIME type for an image path based on its extension."""
+    import pathlib
+
+    suffix = pathlib.PurePosixPath(str(path)).suffix.lower()
+    return _EXT_TO_MIME.get(suffix, "image/png")
+
 
 def resolve_placeholders(
     description: str | None,

@@ -52,13 +52,12 @@ class GeminiProvider(ImageProvider):
         """Build the content parts for a request."""
         parts: list[types.Part] = [types.Part.from_text(text=request.prompt)]
 
-        for img_bytes in request.reference_images:
-            b64_data = base64.b64encode(img_bytes).decode("ascii")
+        for ref in request.reference_images:
             parts.append(
                 types.Part(
                     inline_data=types.Blob(
-                        mime_type="image/png",
-                        data=b64_data.encode("ascii"),
+                        mime_type=ref.mime_type,
+                        data=ref.data,
                     )
                 )
             )

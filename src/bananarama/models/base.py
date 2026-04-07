@@ -7,11 +7,19 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class ReferenceImage:
+    """A reference image with its data and MIME type."""
+
+    data: bytes
+    mime_type: str = "image/png"
+
+
+@dataclass
 class ImageRequest:
     """A request to generate a single image."""
 
     prompt: str
-    reference_images: list[bytes] = field(default_factory=list)
+    reference_images: list[ReferenceImage] = field(default_factory=list)
     aspect_ratio: str = "16:9"
     resolution: str = "1K"
     seed: int | None = None
