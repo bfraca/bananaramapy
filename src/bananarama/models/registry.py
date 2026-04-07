@@ -79,6 +79,8 @@ def is_provider_available(model: str) -> bool:
             import openai  # noqa: F401
         elif cls_name == "FluxProvider":
             import together  # noqa: F401
+        else:
+            return False
         return True
     except ImportError:
         return False
