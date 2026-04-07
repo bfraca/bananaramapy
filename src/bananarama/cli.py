@@ -22,6 +22,7 @@ from bananarama.models.registry import (
 from bananarama.templates import get_template_path, init_project, list_templates
 
 console = Console()
+error_console = Console(stderr=True)
 
 
 @click.group()
@@ -109,13 +110,13 @@ def generate(
             )
         )
     except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        error_console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1) from e
     except CostLimitExceededError as e:
-        console.print(f"[red]Cost limit exceeded:[/red] {e}")
+        error_console.print(f"[red]Cost limit exceeded:[/red] {e}")
         raise SystemExit(2) from e
     except ValueError as e:
-        console.print(f"[red]Configuration error:[/red] {e}")
+        error_console.print(f"[red]Configuration error:[/red] {e}")
         raise SystemExit(1) from e
 
 
@@ -263,14 +264,14 @@ def init_cmd(template: str, overwrite: bool, preview: bool, dest: str) -> None:
         try:
             tmpl_path = get_template_path(template)
         except ValueError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            error_console.print(f"[red]Error:[/red] {e}")
             raise SystemExit(1) from e
 
         console.print(f"[bold]Previewing template '{template}'...[/bold]\n")
         try:
             asyncio.run(bananarama(tmpl_path, dry_run=True))
         except (FileNotFoundError, ValueError) as e:
-            console.print(f"[red]Error:[/red] {e}")
+            error_console.print(f"[red]Error:[/red] {e}")
             raise SystemExit(1) from e
         return
 
@@ -278,10 +279,10 @@ def init_cmd(template: str, overwrite: bool, preview: bool, dest: str) -> None:
         dest_path = Path(dest).resolve()
         config_path = init_project(template, dest_path, overwrite=overwrite)
     except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        error_console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1) from e
     except FileExistsError as e:
-        console.print(f"[yellow]Warning:[/yellow] {e}")
+        error_console.print(f"[yellow]Warning:[/yellow] {e}")
         raise SystemExit(1) from e
 
     console.print(f"[green]Created[/green] {config_path}")
@@ -362,7 +363,7 @@ def ci_init_cmd(
             overwrite=overwrite,
         )
     except FileExistsError as e:
-        console.print(f"[yellow]Warning:[/yellow] {e}")
+        error_console.print(f"[yellow]Warning:[/yellow] {e}")
         raise SystemExit(1) from e
 
     console.print(f"[green]Created[/green] {workflow_path}")
