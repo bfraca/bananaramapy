@@ -59,7 +59,7 @@ def main() -> None:
     "--concurrency",
     "-c",
     default=5,
-    type=int,
+    type=click.IntRange(min=1),
     show_default=True,
     help="Maximum number of concurrent API calls.",
 )

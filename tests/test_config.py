@@ -167,6 +167,16 @@ class TestCoerceRatio:
     def test_sexagesimal_fix_21_9(self):
         assert _coerce_ratio(1269) == "21:9"
 
+    def test_sexagesimal_fix_all_ratios(self):
+        assert _coerce_ratio(61) == "1:1"
+        assert _coerce_ratio(123) == "2:3"
+        assert _coerce_ratio(182) == "3:2"
+        assert _coerce_ratio(184) == "3:4"
+        assert _coerce_ratio(243) == "4:3"
+        assert _coerce_ratio(245) == "4:5"
+        assert _coerce_ratio(304) == "5:4"
+        assert _coerce_ratio(556) == "9:16"
+
     def test_unknown_int_becomes_str(self):
         assert _coerce_ratio(42) == "42"
 

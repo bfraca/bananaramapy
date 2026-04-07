@@ -55,6 +55,10 @@ async def bananarama(
     Returns:
         List of all output file paths.
     """
+    if concurrency < 1:
+        msg = f"concurrency must be >= 1, got {concurrency}"
+        raise ValueError(msg)
+
     config_path = resolve_config_path(path)
     config: ImageConfig = parse_image_config(config_path)
 

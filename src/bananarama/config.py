@@ -155,6 +155,14 @@ def _parse_image(img: dict[str, Any], defaults: Defaults) -> ImageSpec:
 # PyYAML 1.1 interprets unquoted "16:9" as sexagesimal integer 969.
 # Map known sexagesimal mis-parses back to the intended ratio string.
 _SEXAGESIMAL_FIX: dict[int, str] = {
+    61: "1:1",  # 1*60 + 1
+    123: "2:3",  # 2*60 + 3
+    182: "3:2",  # 3*60 + 2
+    184: "3:4",  # 3*60 + 4
+    243: "4:3",  # 4*60 + 3
+    245: "4:5",  # 4*60 + 5
+    304: "5:4",  # 5*60 + 4
+    556: "9:16",  # 9*60 + 16
     969: "16:9",  # 16*60 + 9
     1269: "21:9",  # 21*60 + 9
 }
