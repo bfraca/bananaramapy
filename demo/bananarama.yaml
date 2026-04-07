@@ -8,7 +8,7 @@ defaults:
       The overall mood is calm, cozy, and approachable. 
       Do not include any borders; the image MUST take up the full frame.
       
-  aspect-ratio: 16:9
+  aspect-ratio: "16:9"
   resolution: 1K
 
 images:

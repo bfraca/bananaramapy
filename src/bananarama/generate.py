@@ -6,17 +6,20 @@ import asyncio
 from pathlib import Path
 
 from rich.console import Console
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, TaskID, TextColumn
 from rich.table import Table
 
 from bananarama.config import (
     ImageConfig,
     parse_image_config,
     resolve_config_path,
+    validate_api_keys,
+    validate_model,
 )
 from bananarama.costs.log import append_run
 from bananarama.costs.pricing import compute_cost, estimate_cost
 from bananarama.images import split_image
-from bananarama.models.base import ImageRequest, ImageResult
+from bananarama.models.base import ImageProvider, ImageRequest, ImageResult
 from bananarama.models.registry import get_provider
 from bananarama.tasks import (
     Task,
@@ -36,6 +39,7 @@ async def bananarama(
     force: bool = False,
     max_pixels: int = 4096 * 4096,
     dry_run: bool = False,
+    concurrency: int = 5,
 ) -> list[Path]:
     """Generate presentation images from a YAML configuration.
 
@@ -46,12 +50,23 @@ async def bananarama(
         max_pixels: Maximum pixels per output file. Images exceeding this are
             split into tiles.
         dry_run: If True, show what would be generated without calling APIs.
+        concurrency: Maximum number of concurrent API calls.
 
     Returns:
         List of all output file paths.
     """
+    if concurrency < 1:
+        msg = f"concurrency must be >= 1, got {concurrency}"
+        raise ValueError(msg)
+
     config_path = resolve_config_path(path)
     config: ImageConfig = parse_image_config(config_path)
+
+    # Validate models and API keys early
+    for img in config.images:
+        validate_model(img.model)
+    if not dry_run:
+        validate_api_keys(config.images)
 
     # Resolve output directory
     default_dir = config_path.stem
@@ -83,30 +98,54 @@ async def bananarama(
     # Group tasks by model config for batching
     groups = group_tasks(tasks)
 
-    console.print(f"[bold]Generating {len(tasks)} image(s) in parallel...[/bold]")
-
-    # Generate all groups
+    # Generate with progress bar and concurrency limiting
+    semaphore = asyncio.Semaphore(concurrency)
     results: dict[int, ImageResult | BaseException] = {}
-    for group in groups.values():
-        model = group[0].image.model
-        provider = get_provider(model)
 
-        requests = [
-            ImageRequest(
-                prompt=t.prompt,
-                reference_images=t.reference_images,
-                aspect_ratio=t.image.aspect_ratio,
-                resolution=t.image.resolution,
-                seed=t.image.seed,
+    async def _generate_one(
+        idx: int,
+        task: Task,
+        provider: ImageProvider,
+        progress: Progress,
+        task_id: TaskID,
+    ) -> None:
+        async with semaphore:
+            request = ImageRequest(
+                prompt=task.prompt,
+                reference_images=task.reference_images,
+                aspect_ratio=task.image.aspect_ratio,
+                resolution=task.image.resolution,
+                seed=task.image.seed,
             )
-            for t in group
-        ]
+            try:
+                results[idx] = await provider.generate(request)
+            except Exception as exc:
+                results[idx] = exc
+            finally:
+                progress.advance(task_id)
 
-        group_results = await provider.generate_batch(requests)
+    with Progress(
+        TextColumn("[bold]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        console=console,
+        disable=not console.is_terminal,
+    ) as progress:
+        progress_task = progress.add_task(
+            f"Generating {len(tasks)} image(s)", total=len(tasks)
+        )
 
-        for task_item, result in zip(group, group_results, strict=True):
-            task_idx = tasks.index(task_item)
-            results[task_idx] = result
+        coros = []
+        for group in groups.values():
+            model = group[0].image.model
+            provider = get_provider(model)
+            for task_item in group:
+                idx = tasks.index(task_item)
+                coros.append(
+                    _generate_one(idx, task_item, provider, progress, progress_task)
+                )
+
+        await asyncio.gather(*coros)
 
     # Save results and report costs
     total_cost = 0.0
@@ -187,6 +226,7 @@ def run_sync(
     force: bool = False,
     max_pixels: int = 4096 * 4096,
     dry_run: bool = False,
+    concurrency: int = 5,
 ) -> list[Path]:
     """Synchronous wrapper around the async bananarama function."""
     return asyncio.run(
@@ -196,5 +236,6 @@ def run_sync(
             force=force,
             max_pixels=max_pixels,
             dry_run=dry_run,
+            concurrency=concurrency,
         )
     )
