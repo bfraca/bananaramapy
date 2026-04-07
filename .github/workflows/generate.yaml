@@ -1,0 +1,95 @@
+name: Bananarama Generate (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: "Path to bananarama.yaml or directory containing one"
+        required: true
+        type: string
+      dry-run:
+        description: "Only estimate costs, do not generate (useful for PRs)"
+        required: false
+        type: boolean
+        default: false
+      max-cost:
+        description: "Abort if estimated cost exceeds this amount in USD"
+        required: false
+        type: number
+      concurrency:
+        description: "Max concurrent API calls"
+        required: false
+        type: number
+        default: 5
+      python-version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.12"
+      extra-deps:
+        description: "Optional extras to install (e.g. 'all', 'openai', 'flux')"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      GEMINI_API_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
+      TOGETHER_API_KEY:
+        required: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install ${{ inputs.python-version }}
+
+      - name: Install bananarama
+        run: |
+          if [ -n "${{ inputs.extra-deps }}" ]; then
+            uv pip install --system "bananarama[${{ inputs.extra-deps }}]"
+          else
+            uv pip install --system bananarama
+          fi
+
+      - name: Dry run (cost estimate)
+        if: inputs.dry-run
+        run: |
+          ARGS="--dry-run --format json"
+          if [ -n "${{ inputs.max-cost }}" ] && [ "${{ inputs.max-cost }}" != "0" ]; then
+            ARGS="$ARGS --max-cost ${{ inputs.max-cost }}"
+          fi
+          bananarama generate "${{ inputs.config }}" $ARGS
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+
+      - name: Generate images
+        if: ${{ !inputs.dry-run }}
+        run: |
+          ARGS="--concurrency ${{ inputs.concurrency }}"
+          if [ -n "${{ inputs.max-cost }}" ] && [ "${{ inputs.max-cost }}" != "0" ]; then
+            ARGS="$ARGS --max-cost ${{ inputs.max-cost }}"
+          fi
+          bananarama generate "${{ inputs.config }}" $ARGS
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+
+      - name: Upload generated images
+        if: ${{ !inputs.dry-run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bananarama-images
+          path: "**/*.png"
+          retention-days: 30
+          if-no-files-found: warn

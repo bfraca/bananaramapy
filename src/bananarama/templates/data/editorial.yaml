@@ -1,0 +1,39 @@
+# Bananarama Template: Editorial
+#
+# Flat vector illustrations with grainy, chalk-pastel textures.
+# Perfect for conference talks, keynotes, and storytelling decks.
+#
+# Recommended model: gemini-3.1-flash-image-preview (excellent with vector styles)
+# Add your own reference images as [placeholder] names (e.g. [speaker], [logo]).
+
+defaults:
+  model: gemini-3.1-flash-image-preview
+  style: >
+    Flat vector editorial illustration with a prominent grainy, chalk-pastel
+    texture overlaid on the entire image. The style is lineless, relying on
+    color blocking and soft, textured shading to define forms. The color
+    palette is muted and desaturated. If present, furniture and decor are
+    mid-century modern. The overall mood is calm, cozy, and approachable.
+    Do not include any borders; the image MUST take up the full frame.
+  aspect-ratio: "16:9"
+  resolution: 1K
+
+images:
+  - name: title-card
+    description: >
+      A cozy mid-century modern living room scene viewed from a slight angle.
+      A comfortable armchair sits next to a small side table with a steaming
+      cup of coffee. Warm afternoon light filters through large windows.
+      The scene is inviting and sets the stage for a thoughtful presentation.
+
+  - name: collaboration
+    description: >
+      Two people sitting across from each other at a round wooden table,
+      having an animated discussion. Papers and notebooks are scattered
+      between them. The scene conveys creative energy and teamwork.
+
+  - name: big-idea
+    description: >
+      A single person standing on a hillside, looking out at a vast landscape
+      of rolling hills under a soft sunset sky. The composition suggests
+      vision and forward-thinking. The figure is small against the landscape.

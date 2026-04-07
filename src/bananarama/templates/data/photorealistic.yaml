@@ -1,0 +1,41 @@
+# Bananarama Template: Photorealistic
+#
+# Cinematic, photographic quality with dramatic lighting.
+# Ideal for product launches, brand presentations, and marketing decks.
+#
+# Recommended model: gpt-image-1.5 (strong photorealism)
+# Requires: uv pip install "bananarama[openai]"
+# Add your own reference images as [placeholder] names (e.g. [product], [brand]).
+
+defaults:
+  model: gpt-image-1.5
+  style: >
+    Photorealistic, cinematic composition with professional studio lighting.
+    Shallow depth of field with soft bokeh background. Rich, saturated colors.
+    Golden-hour warmth or cool blue-hour tones depending on the mood.
+    High-end commercial photography aesthetic. Magazine-quality rendering.
+    No borders; the image fills the full frame.
+  aspect-ratio: "16:9"
+  resolution: 1K
+
+images:
+  - name: hero-shot
+    description: >
+      A dramatic hero shot of a sleek, modern workspace. A laptop sits on a
+      clean wooden desk, its screen glowing softly. The background is a
+      blurred cityscape at dusk seen through floor-to-ceiling windows.
+      Warm golden light catches the edges of objects.
+
+  - name: team-moment
+    description: >
+      A candid photograph of a diverse team of four people gathered around
+      a whiteboard, mid-discussion. Natural office lighting, slightly warm.
+      One person is gesturing enthusiastically. The mood is energetic
+      and collaborative.
+
+  - name: product-close-up
+    description: >
+      An extreme close-up of hands holding a beautifully crafted object —
+      a ceramic mug, a leather notebook, or a polished device. Shallow
+      depth of field isolates the subject. Studio lighting from the left
+      creates a dramatic shadow on the right.

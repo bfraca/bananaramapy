@@ -1,0 +1,41 @@
+# Bananarama Template: Dark
+#
+# Moody dark backgrounds with neon accents and atmospheric lighting.
+# Perfect for tech talks, developer conferences, and cyberpunk-themed decks.
+#
+# Recommended model: gemini-3.1-flash-image-preview (great with atmospheric scenes)
+# Add your own reference images as [placeholder] names (e.g. [speaker], [logo]).
+
+defaults:
+  model: gemini-3.1-flash-image-preview
+  style: >
+    Dark, atmospheric digital art with deep navy and charcoal backgrounds.
+    Subtle neon accent lighting in teal, electric blue, or soft purple.
+    Volumetric light rays or soft particle effects add depth. The mood is
+    sophisticated, modern, and slightly futuristic. Clean composition with
+    strong contrast between dark areas and glowing highlights.
+    No borders; the image fills the full frame.
+  aspect-ratio: "16:9"
+  resolution: 1K
+
+images:
+  - name: dark-title
+    description: >
+      An abstract dark background with soft glowing geometric shapes —
+      hexagons, circles, and lines — floating in deep space. A subtle
+      gradient from dark navy at the edges to slightly lighter in the center
+      creates depth. Tiny particle-like dots drift through the scene.
+
+  - name: code-aesthetic
+    description: >
+      A stylized representation of code or data flowing through a dark
+      environment. Streams of glowing characters cascade downward like
+      digital rain. The streams are rendered in soft teal and blue tones.
+      The overall effect is elegant rather than chaotic.
+
+  - name: network-closing
+    description: >
+      An abstract network visualization on a dark background. Glowing nodes
+      connected by thin luminous lines form a constellation-like pattern.
+      The nodes pulse with soft blue and purple light. The composition
+      suggests connection, technology, and possibility.
