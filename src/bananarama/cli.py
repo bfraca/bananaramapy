@@ -55,12 +55,21 @@ def main() -> None:
     default=False,
     help="Show what would be generated and estimated costs, without calling APIs.",
 )
+@click.option(
+    "--concurrency",
+    "-c",
+    default=5,
+    type=int,
+    show_default=True,
+    help="Maximum number of concurrent API calls.",
+)
 def generate(
     path: str,
     output_dir: str | None,
     force: bool,
     max_pixels: int,
     dry_run: bool,
+    concurrency: int,
 ) -> None:
     """Generate images from a YAML configuration file.
 
@@ -75,6 +84,7 @@ def generate(
                 force=force,
                 max_pixels=max_pixels,
                 dry_run=dry_run,
+                concurrency=concurrency,
             )
         )
     except FileNotFoundError as e:
@@ -86,7 +96,13 @@ def generate(
 
 
 @main.command("models")
-def models_cmd() -> None:
+@click.option(
+    "--provider",
+    "-p",
+    default=None,
+    help="Filter by provider name (e.g. google, openai, flux).",
+)
+def models_cmd(provider: str | None) -> None:
     """List all available image generation models with pricing and status."""
     table = Table(title="Available Models")
     table.add_column("Model", style="cyan")
@@ -101,14 +117,19 @@ def models_cmd() -> None:
     }
 
     for model_name in list_models():
-        provider = get_provider_name(model_name)
+        provider_display = get_provider_name(model_name)
+
+        # Filter by provider if requested
+        if provider is not None and provider.lower() not in provider_display.lower():
+            continue
+
         status_enum = check_provider_status(model_name)
         status = status_style[status_enum]
 
         est = estimate_cost(model_name)
         price_str = f"~${est:.3f}" if est is not None else "—"
 
-        table.add_row(model_name, provider, price_str, status)
+        table.add_row(model_name, provider_display, price_str, status)
 
     console.print(table)
 
