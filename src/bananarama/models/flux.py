@@ -48,15 +48,18 @@ class FluxProvider(ImageProvider):
             request.aspect_ratio, request.resolution, provider="flux"
         )
 
-        response = await self._client.images.generate(
-            model=self._together_model,
-            prompt=request.prompt,
-            width=width,
-            height=height,
-            n=1,
-            response_format="b64_json",
-            seed=request.seed,
-        )
+        kwargs: dict[str, object] = {
+            "model": self._together_model,
+            "prompt": request.prompt,
+            "width": width,
+            "height": height,
+            "n": 1,
+            "response_format": "b64_json",
+        }
+        if request.seed is not None:
+            kwargs["seed"] = request.seed
+
+        response = await self._client.images.generate(**kwargs)
 
         item = response.data[0]
         if item.b64_json:
