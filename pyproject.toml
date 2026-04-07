@@ -80,3 +80,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "integration: real API calls (require API keys, deselected by default)",
+]
+addopts = "-m 'not integration'"

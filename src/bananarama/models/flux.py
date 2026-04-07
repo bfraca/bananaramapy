@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from typing import Any
 
 from bananarama.models.base import ImageProvider, ImageRequest, ImageResult, TokenUsage
 from bananarama.models.sizing import resolve_dimensions
@@ -48,7 +49,8 @@ class FluxProvider(ImageProvider):
             request.aspect_ratio, request.resolution, provider="flux"
         )
 
-        kwargs: dict[str, object] = {
+        # Build kwargs dynamically to avoid SDK type-stub version mismatches.
+        kwargs: dict[str, Any] = {
             "model": self._together_model,
             "prompt": request.prompt,
             "width": width,
@@ -62,8 +64,9 @@ class FluxProvider(ImageProvider):
         response = await self._client.images.generate(**kwargs)
 
         item = response.data[0]
-        if item.b64_json:
-            image_data = base64.b64decode(item.b64_json)
+        b64_data = getattr(item, "b64_json", None)
+        if b64_data:
+            image_data = base64.b64decode(b64_data)
         else:
             msg = "Together AI did not return b64_json image data"
             raise RuntimeError(msg)
