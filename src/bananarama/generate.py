@@ -98,7 +98,12 @@ async def bananarama(
 
     if not tasks:
         if dry_run:
-            console.print("[dim]Nothing to generate (all images already exist).[/dim]")
+            if output_format == "json":
+                _print_json([], 0.0)
+            else:
+                console.print(
+                    "[dim]Nothing to generate (all images already exist).[/dim]"
+                )
         return all_output_paths(paths)
 
     # Dry-run: show what would be generated and estimated costs (no side effects)
