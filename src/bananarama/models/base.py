@@ -47,8 +47,8 @@ class ImageProvider(ABC):
     """Abstract base for image generation providers.
 
     Each provider wraps a specific API (Gemini, OpenAI, etc.) and implements
-    async generation. New providers can be added in Phase 2 by subclassing
-    this ABC and registering in the model registry.
+    async generation.  Subclass this ABC and register in the model registry
+    to add a new provider.
     """
 
     @abstractmethod

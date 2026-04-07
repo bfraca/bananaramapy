@@ -27,9 +27,9 @@ _EXT_TO_MIME: dict[str, str] = {
 
 def mime_type_for_path(path: Path) -> str:
     """Return the MIME type for an image path based on its extension."""
-    import pathlib
+    from pathlib import PurePosixPath
 
-    suffix = pathlib.PurePosixPath(str(path)).suffix.lower()
+    suffix = PurePosixPath(str(path)).suffix.lower()
     return _EXT_TO_MIME.get(suffix, "image/png")
 
 

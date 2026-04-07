@@ -5,16 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from bananarama.config import ImageSpec
-from bananarama.generate import build_tasks, compute_output_paths
+from bananarama.tasks import build_tasks, compute_output_paths
 
 
 class TestComputeOutputPaths:
-    def test_single_image(self):
+    def test_single_image(self) -> None:
         images = [ImageSpec(name="img1", description="desc", n=1)]
         result = compute_output_paths(images, Path("/tmp/output"))
         assert result["img1"] == [Path("/tmp/output/img1.png")]
 
-    def test_multiple_variants(self):
+    def test_multiple_variants(self) -> None:
         images = [ImageSpec(name="img2", description="desc", n=3)]
         result = compute_output_paths(images, Path("/tmp/output"))
         assert result["img2"] == [
@@ -23,7 +23,7 @@ class TestComputeOutputPaths:
             Path("/tmp/output/img2-3.png"),
         ]
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         images = [
             ImageSpec(name="bicycle", description="desc", n=3),
             ImageSpec(name="car", description="desc", n=1),
@@ -38,7 +38,7 @@ class TestComputeOutputPaths:
 
 
 class TestBuildTasks:
-    def test_skips_existing(self, tmp_path):
+    def test_skips_existing(self, tmp_path: Path) -> None:
         existing = tmp_path / "img1.png"
         existing.write_text("fake")
 
@@ -48,7 +48,7 @@ class TestBuildTasks:
         tasks = build_tasks(images, paths)
         assert len(tasks) == 0
 
-    def test_force_overrides_skip(self, tmp_path):
+    def test_force_overrides_skip(self, tmp_path: Path) -> None:
         existing = tmp_path / "img1.png"
         existing.write_text("fake")
 
@@ -58,7 +58,7 @@ class TestBuildTasks:
         tasks = build_tasks(images, paths, force=True)
         assert len(tasks) == 1
 
-    def test_new_images_included(self, tmp_path):
+    def test_new_images_included(self, tmp_path: Path) -> None:
         images = [
             ImageSpec(name="img1", description="desc1"),
             ImageSpec(name="img2", description="desc2"),
