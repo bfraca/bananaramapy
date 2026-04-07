@@ -66,7 +66,7 @@ jobs:
           if [ -n "${{ inputs.max-cost }}" ] && [ "${{ inputs.max-cost }}" != "0" ]; then
             ARGS="$ARGS --max-cost ${{ inputs.max-cost }}"
           fi
-          bananarama generate ${{ inputs.config }} $ARGS
+          bananarama generate "${{ inputs.config }}" $ARGS
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -79,7 +79,7 @@ jobs:
           if [ -n "${{ inputs.max-cost }}" ] && [ "${{ inputs.max-cost }}" != "0" ]; then
             ARGS="$ARGS --max-cost ${{ inputs.max-cost }}"
           fi
-          bananarama generate ${{ inputs.config }} $ARGS
+          bananarama generate "${{ inputs.config }}" $ARGS
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
