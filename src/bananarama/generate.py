@@ -99,7 +99,11 @@ async def bananarama(
     results: dict[int, ImageResult | BaseException] = {}
 
     async def _generate_one(
-        idx: int, task: Task, provider: ImageProvider, progress: Progress, task_id: TaskID
+        idx: int,
+        task: Task,
+        provider: ImageProvider,
+        progress: Progress,
+        task_id: TaskID,
     ) -> None:
         async with semaphore:
             request = ImageRequest(
