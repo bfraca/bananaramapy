@@ -1,0 +1,41 @@
+# Bananarama Template: Retro
+#
+# 80s/90s synthwave and retro-futuristic aesthetics.
+# Great for fun, informal talks, hackathon presentations, and gaming topics.
+#
+# Recommended model: gemini-3.1-flash-image-preview (handles stylized art well)
+# Add your own reference images as [placeholder] names (e.g. [mascot], [logo]).
+
+defaults:
+  model: gemini-3.1-flash-image-preview
+  style: >
+    Retro-futuristic synthwave aesthetic inspired by 1980s and 1990s design.
+    Neon pink, electric blue, and vivid purple color palette against dark
+    backgrounds. Chrome reflections, grid lines stretching to a vanishing
+    point, and glowing sun or moon shapes. Pixel art or vector art with
+    a CRT screen glow effect. The mood is energetic, nostalgic, and fun.
+    No borders; the image fills the full frame.
+  aspect-ratio: "16:9"
+  resolution: 1K
+
+images:
+  - name: neon-title
+    description: >
+      A neon-lit cityscape at night with towering skyscrapers reflecting
+      pink and blue neon. A perspective grid floor stretches toward the
+      horizon where a massive glowing sun sets. Chrome palm trees frame
+      the edges. The scene is dramatic and eye-catching.
+
+  - name: pixel-workspace
+    description: >
+      A pixel art rendering of a retro computer workstation. An old CRT
+      monitor displays green-on-black text. Cassette tapes and floppy disks
+      are scattered on the desk. A lava lamp glows in the corner.
+      The scene is cozy and nostalgic.
+
+  - name: arcade-finale
+    description: >
+      A retro arcade cabinet scene. Rows of glowing arcade machines stretch
+      into the distance, their screens casting colorful light on the floor.
+      A "GAME OVER" or "INSERT COIN" feeling without any actual text.
+      Neon tubes run along the ceiling.

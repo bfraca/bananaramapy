@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TaskID, TextColumn
@@ -33,6 +35,18 @@ from bananarama.tasks import (
 console = Console()
 
 
+class CostLimitExceededError(Exception):
+    """Raised when estimated cost exceeds the --max-cost threshold."""
+
+    def __init__(self, estimated: float, limit: float) -> None:
+        self.estimated = estimated
+        self.limit = limit
+        super().__init__(
+            f"Estimated cost ~${estimated:.3f} exceeds --max-cost limit "
+            f"${limit:.3f}. Aborting. Use a higher --max-cost or remove the flag."
+        )
+
+
 async def bananarama(
     path: str | Path = "bananarama.yaml",
     output_dir: str | None = None,
@@ -40,6 +54,8 @@ async def bananarama(
     max_pixels: int = 4096 * 4096,
     dry_run: bool = False,
     concurrency: int = 5,
+    output_format: str = "text",
+    max_cost: float | None = None,
 ) -> list[Path]:
     """Generate presentation images from a YAML configuration.
 
@@ -51,6 +67,8 @@ async def bananarama(
             split into tiles.
         dry_run: If True, show what would be generated without calling APIs.
         concurrency: Maximum number of concurrent API calls.
+        output_format: Output format for dry-run: "text" (default) or "json".
+        max_cost: If set, abort when estimated cost exceeds this threshold.
 
     Returns:
         List of all output file paths.
@@ -85,8 +103,14 @@ async def bananarama(
 
     # Dry-run: show what would be generated and estimated costs (no side effects)
     if dry_run:
-        _print_dry_run(tasks)
+        _print_dry_run(tasks, output_format=output_format, max_cost=max_cost)
         return all_output_paths(paths)
+
+    # Check max-cost before actual generation
+    if max_cost is not None:
+        total_est = sum(estimate_cost(t.image.model) or 0.0 for t in tasks)
+        if total_est > max_cost:
+            raise CostLimitExceededError(total_est, max_cost)
 
     # Create output directory only when we are actually generating
     out_path.mkdir(parents=True, exist_ok=True)
@@ -200,24 +224,70 @@ async def bananarama(
     return all_output_paths(paths)
 
 
-def _print_dry_run(tasks: list[Task]) -> None:
+def _print_dry_run(
+    tasks: list[Task],
+    *,
+    output_format: str = "text",
+    max_cost: float | None = None,
+) -> None:
     """Print a table of what would be generated without calling APIs."""
+    items: list[dict[str, Any]] = []
+    total_est = 0.0
+    for task in tasks:
+        est = estimate_cost(task.image.model)
+        if est is not None:
+            total_est += est
+        items.append(
+            {
+                "image": task.output_path.name,
+                "model": task.image.model,
+                "estimated_cost": est,
+            }
+        )
+
+    # Check max-cost threshold
+    if max_cost is not None and total_est > max_cost:
+        if output_format == "json":
+            _print_json(items, total_est, max_cost_exceeded=True, max_cost=max_cost)
+        raise CostLimitExceededError(total_est, max_cost)
+
+    if output_format == "json":
+        _print_json(items, total_est)
+        return
+
+    # Rich table output
     table = Table(title="Dry Run — What Would Be Generated")
     table.add_column("Image", style="cyan")
     table.add_column("Model", style="green")
     table.add_column("Est. Cost", justify="right")
 
-    total_est = 0.0
-    for task in tasks:
-        est = estimate_cost(task.image.model)
+    for item in items:
+        est = item["estimated_cost"]
         cost_str = f"~${est:.3f}" if est is not None else "—"
-        if est is not None:
-            total_est += est
-        table.add_row(task.output_path.name, task.image.model, cost_str)
+        table.add_row(item["image"], item["model"], cost_str)
 
     console.print(table)
     console.print(f"\n[bold]Estimated total: ~${total_est:.3f}[/bold]")
     console.print(f"[dim]{len(tasks)} image(s) would be generated.[/dim]")
+
+
+def _print_json(
+    items: list[dict[str, Any]],
+    total_est: float,
+    *,
+    max_cost_exceeded: bool = False,
+    max_cost: float | None = None,
+) -> None:
+    """Print dry-run results as JSON for CI/CD consumption."""
+    output: dict[str, Any] = {
+        "images": items,
+        "total_estimated_cost": round(total_est, 4),
+        "image_count": len(items),
+    }
+    if max_cost is not None:
+        output["max_cost"] = max_cost
+        output["max_cost_exceeded"] = max_cost_exceeded
+    print(json.dumps(output, indent=2))
 
 
 def run_sync(
@@ -227,6 +297,8 @@ def run_sync(
     max_pixels: int = 4096 * 4096,
     dry_run: bool = False,
     concurrency: int = 5,
+    output_format: str = "text",
+    max_cost: float | None = None,
 ) -> list[Path]:
     """Synchronous wrapper around the async bananarama function."""
     return asyncio.run(
@@ -237,5 +309,7 @@ def run_sync(
             max_pixels=max_pixels,
             dry_run=dry_run,
             concurrency=concurrency,
+            output_format=output_format,
+            max_cost=max_cost,
         )
     )

@@ -1,0 +1,36 @@
+# Bananarama Template: Minimal
+#
+# Clean, corporate aesthetic with white/light backgrounds.
+# Great for startup pitches, business presentations, and product demos.
+#
+# Recommended model: gemini-3.1-flash-image-preview (fast, good with flat graphics)
+# Add your own reference images as [placeholder] names (e.g. [logo], [product]).
+
+defaults:
+  model: gemini-3.1-flash-image-preview
+  style: >
+    Clean, minimal corporate illustration. White or very light grey background.
+    Simple geometric shapes and thin lines. Sans-serif typography feel.
+    Muted accent colors — soft blues, greys, and whites. Plenty of negative space.
+    Professional and polished. No borders; the image fills the full frame.
+  aspect-ratio: "16:9"
+  resolution: 1K
+
+images:
+  - name: title-slide
+    description: >
+      A minimal title card background. Subtle geometric pattern of thin lines
+      forming an abstract grid. A single accent circle in soft blue anchors
+      the composition off-center. Leave large open areas for text overlay.
+
+  - name: section-divider
+    description: >
+      A clean section divider background. A single horizontal line spans the
+      width at the lower third. Above it, a small abstract icon representing
+      growth — like a simple upward arrow or ascending steps.
+
+  - name: closing-slide
+    description: >
+      A minimal closing slide background. Concentric circles radiating outward
+      from the center in very light grey. A small "thank you" feeling without
+      any text — just the visual warmth of expanding rings.
