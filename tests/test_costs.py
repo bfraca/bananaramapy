@@ -2,37 +2,87 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
+
 from bananarama.costs.pricing import (
     MODEL_PRICES,
     PER_IMAGE_PRICES,
+    _load_prices,
     compute_cost,
     estimate_cost,
+    reload_prices,
 )
 from bananarama.models.base import ImageResult, TokenUsage
 
 
 class TestModelPrices:
-    def test_gemini_models(self):
+    def test_gemini_models(self) -> None:
+        reload_prices()
         assert "gemini-3.1-flash-image-preview" in MODEL_PRICES
         assert "gemini-3-pro-image-preview" in MODEL_PRICES
         assert "gemini-2.5-flash-image" in MODEL_PRICES
 
-    def test_openai_models(self):
+    def test_openai_models(self) -> None:
+        reload_prices()
         assert "gpt-image-1" in MODEL_PRICES
         assert "gpt-image-1.5" in MODEL_PRICES
 
-    def test_flux_per_image_models(self):
+    def test_flux_per_image_models(self) -> None:
+        reload_prices()
         assert "flux-2-pro" in PER_IMAGE_PRICES
         assert "flux-2-dev" in PER_IMAGE_PRICES
         assert "flux-2-schnell" in PER_IMAGE_PRICES
 
-    def test_all_token_prices_have_output_image(self):
+    def test_all_token_prices_have_output_image(self) -> None:
+        reload_prices()
         for model, prices in MODEL_PRICES.items():
             assert prices.output_image > 0, f"{model} missing output_image"
 
 
+class TestTomlLoading:
+    def test_load_default_prices(self) -> None:
+        token, per_image = _load_prices()
+        assert len(token) == 5
+        assert len(per_image) == 3
+
+    def test_load_custom_prices(self, tmp_path: Path) -> None:
+        custom = tmp_path / "custom.toml"
+        custom.write_text(
+            '[models."test-model"]\n'
+            'pricing_model = "per_image"\n'
+            "cost_per_image = 0.123\n"
+        )
+        token, per_image = _load_prices(custom)
+        assert len(token) == 0
+        assert "test-model" in per_image
+        assert per_image["test-model"].cost_per_image == 0.123
+
+    def test_reload_prices(self) -> None:
+        reload_prices()
+        assert len(MODEL_PRICES) == 5
+        assert len(PER_IMAGE_PRICES) == 3
+
+    def test_env_var_override(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        custom = tmp_path / "env.toml"
+        custom.write_text(
+            '[models."env-model"]\n'
+            'pricing_model = "per_image"\n'
+            "cost_per_image = 0.999\n"
+        )
+        monkeypatch.setenv("BANANARAMA_PRICES", str(custom))
+        _token, per_image = _load_prices(path=None)
+        assert "env-model" in per_image
+
+
 class TestComputeCost:
-    def test_known_model(self):
+    def test_known_model(self) -> None:
         result = ImageResult(
             image_data=b"fake",
             model="gemini-3.1-flash-image-preview",
@@ -45,7 +95,7 @@ class TestComputeCost:
         expected = 0.00015 + 0.06015
         assert abs(cost - expected) < 1e-8
 
-    def test_unknown_model(self):
+    def test_unknown_model(self) -> None:
         result = ImageResult(
             image_data=b"fake",
             model="unknown-model",
@@ -54,7 +104,7 @@ class TestComputeCost:
         )
         assert compute_cost(result) == 0.0
 
-    def test_per_image_pricing(self):
+    def test_per_image_pricing(self) -> None:
         result = ImageResult(
             image_data=b"fake",
             model="flux-2-pro",
@@ -65,14 +115,14 @@ class TestComputeCost:
 
 
 class TestEstimateCost:
-    def test_known_token_model(self):
+    def test_known_token_model(self) -> None:
         est = estimate_cost("gemini-3.1-flash-image-preview")
         assert est is not None
         assert est > 0
 
-    def test_known_per_image_model(self):
+    def test_known_per_image_model(self) -> None:
         est = estimate_cost("flux-2-pro")
         assert est == 0.05
 
-    def test_unknown_model(self):
+    def test_unknown_model(self) -> None:
         assert estimate_cost("nonexistent") is None

@@ -1,0 +1,70 @@
+# Bananarama model pricing data.
+# Last updated: 2026-04-07
+#
+# Sources:
+#   Google Gemini: https://ai.google.dev/pricing
+#   OpenAI: https://openai.com/api/pricing
+#   Together AI (FLUX): https://www.together.ai/pricing
+#
+# Two pricing models:
+#   "token"     — per-million-token rates, broken down by input/output modality
+#   "per_image" — flat rate per generated image
+#
+# Override this file by setting BANANARAMA_PRICES to a custom TOML file path.
+
+[models]
+
+[models."gemini-3.1-flash-image-preview"]
+provider = "google"
+pricing_model = "token"
+input_text = 0.50
+input_image = 0.50
+output_text = 3.00
+output_image = 60.00
+
+[models."gemini-3-pro-image-preview"]
+provider = "google"
+pricing_model = "token"
+input_text = 1.25
+input_image = 1.25
+output_text = 5.00
+output_image = 60.00
+
+[models."gemini-2.5-flash-image"]
+provider = "google"
+pricing_model = "token"
+input_text = 0.15
+input_image = 0.15
+output_text = 0.60
+output_image = 60.00
+
+[models."gpt-image-1"]
+provider = "openai"
+pricing_model = "token"
+input_text = 5.00
+input_image = 10.00
+output_text = 0.0
+output_image = 40.00
+
+[models."gpt-image-1.5"]
+provider = "openai"
+pricing_model = "token"
+input_text = 5.00
+input_image = 10.00
+output_text = 0.0
+output_image = 40.00
+
+[models."flux-2-pro"]
+provider = "together"
+pricing_model = "per_image"
+cost_per_image = 0.050
+
+[models."flux-2-dev"]
+provider = "together"
+pricing_model = "per_image"
+cost_per_image = 0.025
+
+[models."flux-2-schnell"]
+provider = "together"
+pricing_model = "per_image"
+cost_per_image = 0.003

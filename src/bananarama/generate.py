@@ -1,118 +1,33 @@
-"""Orchestration: task building, parallel image generation, and saving."""
+"""Async orchestration: parallel image generation, saving, and reporting."""
 
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from pathlib import Path
 
 from rich.console import Console
+from rich.table import Table
 
 from bananarama.config import (
     ImageConfig,
-    ImageSpec,
     parse_image_config,
     resolve_config_path,
 )
-from bananarama.costs.pricing import compute_cost
-from bananarama.images import (
-    mime_type_for_path,
-    resize_reference_image,
-    resolve_placeholders,
-    split_image,
-)
-from bananarama.models.base import ImageRequest, ImageResult, ReferenceImage
+from bananarama.costs.log import append_run
+from bananarama.costs.pricing import compute_cost, estimate_cost
+from bananarama.images import split_image
+from bananarama.models.base import ImageRequest, ImageResult
 from bananarama.models.registry import get_provider
+from bananarama.tasks import (
+    Task,
+    all_output_paths,
+    build_tasks,
+    compute_output_paths,
+    group_tasks,
+    preprocess_task,
+)
 
 console = Console()
-
-
-@dataclass
-class Task:
-    """A single image generation task."""
-
-    image: ImageSpec
-    output_path: Path
-    prompt: str = ""
-    reference_images: list[ReferenceImage] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self.reference_images is None:
-            self.reference_images = []
-
-
-def compute_output_paths(
-    images: list[ImageSpec], output_dir: Path
-) -> dict[str, list[Path]]:
-    """Compute output file paths for all images.
-
-    Returns a dict mapping image name to its list of output paths.
-    """
-    result: dict[str, list[Path]] = {}
-    for image in images:
-        if image.n > 1:
-            names = [f"{image.name}-{i + 1}" for i in range(image.n)]
-        else:
-            names = [image.name]
-        result[image.name] = [output_dir / f"{n}.png" for n in names]
-    return result
-
-
-def build_tasks(
-    images: list[ImageSpec],
-    output_paths: dict[str, list[Path]],
-    force: bool = False,
-) -> list[Task]:
-    """Build the list of generation tasks, skipping existing files."""
-    tasks: list[Task] = []
-    n_skipped = 0
-
-    for image in images:
-        for path in output_paths[image.name]:
-            if not force and not image.force and path.exists():
-                n_skipped += 1
-                continue
-            tasks.append(Task(image=image, output_path=path))
-
-    if n_skipped > 0:
-        console.print(f"[dim]Skipping {n_skipped} image(s) (already exist)[/dim]")
-
-    return tasks
-
-
-def preprocess_task(task: Task, base_dir: Path) -> None:
-    """Resolve placeholders and load reference images for a task."""
-    image = task.image
-
-    # Resolve style placeholders first (they get earlier image indices)
-    style_text, style_images = resolve_placeholders(image.style, base_dir)
-    start_index = len(style_images)
-
-    # Then resolve description placeholders
-    desc_text, desc_images = resolve_placeholders(
-        image.description, base_dir, start_index
-    )
-
-    # Build prompt
-    parts: list[str] = []
-    if desc_text:
-        parts.append(desc_text)
-    if style_text:
-        parts.append(f"Style: {style_text}")
-    task.prompt = "\n\n".join(parts)
-
-    # Load and resize reference images
-    all_image_paths = style_images + desc_images
-    refs: list[ReferenceImage] = []
-    for img_path in all_image_paths:
-        resize_reference_image(img_path)
-        refs.append(
-            ReferenceImage(
-                data=img_path.read_bytes(),
-                mime_type=mime_type_for_path(img_path),
-            )
-        )
-    task.reference_images = refs
 
 
 async def bananarama(
@@ -120,6 +35,7 @@ async def bananarama(
     output_dir: str | None = None,
     force: bool = False,
     max_pixels: int = 4096 * 4096,
+    dry_run: bool = False,
 ) -> list[Path]:
     """Generate presentation images from a YAML configuration.
 
@@ -129,6 +45,7 @@ async def bananarama(
         force: If True, regenerate all images even if they exist.
         max_pixels: Maximum pixels per output file. Images exceeding this are
             split into tiles.
+        dry_run: If True, show what would be generated without calling APIs.
 
     Returns:
         List of all output file paths.
@@ -145,18 +62,25 @@ async def bananarama(
     out_path.mkdir(parents=True, exist_ok=True)
 
     # Build tasks
-    all_paths = compute_output_paths(config.images, out_path)
-    tasks = build_tasks(config.images, all_paths, force=force)
+    paths = compute_output_paths(config.images, out_path)
+    tasks = build_tasks(config.images, paths, force=force)
 
     if not tasks:
-        return _all_output_paths(all_paths)
+        if dry_run:
+            console.print("[dim]Nothing to generate (all images already exist).[/dim]")
+        return all_output_paths(paths)
+
+    # Dry-run: show what would be generated and estimated costs
+    if dry_run:
+        _print_dry_run(tasks)
+        return all_output_paths(paths)
 
     # Preprocess tasks (resolve placeholders, load reference images)
     for task in tasks:
         preprocess_task(task, config.base_dir)
 
     # Group tasks by model config for batching
-    groups = _group_tasks(tasks)
+    groups = group_tasks(tasks)
 
     console.print(f"[bold]Generating {len(tasks)} image(s) in parallel...[/bold]")
 
@@ -186,6 +110,7 @@ async def bananarama(
     # Save results and report costs
     total_cost = 0.0
     all_saved: list[Path] = []
+    cost_by_model: dict[str, tuple[int, float]] = {}  # model -> (count, cost)
 
     for i, task in enumerate(tasks):
         result = results[i]
@@ -197,6 +122,11 @@ async def bananarama(
 
         cost = compute_cost(result)
         total_cost += cost
+
+        # Accumulate per-model stats for cost log
+        model_name = task.image.model
+        prev_count, prev_cost = cost_by_model.get(model_name, (0, 0.0))
+        cost_by_model[model_name] = (prev_count + 1, prev_cost + cost)
 
         # Split large images if needed
         saved_paths = split_image(
@@ -218,25 +148,36 @@ async def bananarama(
     if total_cost > 0:
         console.print(f"\n[bold]Total cost: ${total_cost:.3f}[/bold]")
 
-    return _all_output_paths(all_paths)
+    # Append to persistent cost log
+    for model_name, (count, model_cost) in cost_by_model.items():
+        append_run(
+            config_path=str(config_path),
+            model=model_name,
+            images_generated=count,
+            total_cost=model_cost,
+        )
+
+    return all_output_paths(paths)
 
 
-def _group_tasks(tasks: list[Task]) -> dict[str, list[Task]]:
-    """Group tasks by model + seed + aspect-ratio + resolution."""
-    groups: dict[str, list[Task]] = {}
+def _print_dry_run(tasks: list[Task]) -> None:
+    """Print a table of what would be generated without calling APIs."""
+    table = Table(title="Dry Run — What Would Be Generated")
+    table.add_column("Image", style="cyan")
+    table.add_column("Model", style="green")
+    table.add_column("Est. Cost", justify="right")
+
+    total_est = 0.0
     for task in tasks:
-        img = task.image
-        key = f"{img.model}|{img.seed}|{img.aspect_ratio}|{img.resolution}"
-        groups.setdefault(key, []).append(task)
-    return groups
+        est = estimate_cost(task.image.model)
+        cost_str = f"~${est:.3f}" if est is not None else "—"
+        if est is not None:
+            total_est += est
+        table.add_row(task.output_path.name, task.image.model, cost_str)
 
-
-def _all_output_paths(paths: dict[str, list[Path]]) -> list[Path]:
-    """Flatten the output paths dict."""
-    result: list[Path] = []
-    for path_list in paths.values():
-        result.extend(path_list)
-    return result
+    console.print(table)
+    console.print(f"\n[bold]Estimated total: ~${total_est:.3f}[/bold]")
+    console.print(f"[dim]{len(tasks)} image(s) would be generated.[/dim]")
 
 
 def run_sync(
@@ -244,8 +185,15 @@ def run_sync(
     output_dir: str | None = None,
     force: bool = False,
     max_pixels: int = 4096 * 4096,
+    dry_run: bool = False,
 ) -> list[Path]:
     """Synchronous wrapper around the async bananarama function."""
     return asyncio.run(
-        bananarama(path, output_dir=output_dir, force=force, max_pixels=max_pixels)
+        bananarama(
+            path,
+            output_dir=output_dir,
+            force=force,
+            max_pixels=max_pixels,
+            dry_run=dry_run,
+        )
     )

@@ -8,6 +8,11 @@ import base64
 from bananarama.models.base import ImageProvider, ImageRequest, ImageResult, TokenUsage
 from bananarama.models.sizing import resolve_dimensions
 
+try:
+    from together._types import NOT_GIVEN
+except ImportError:  # pragma: no cover
+    NOT_GIVEN = None  # type: ignore[assignment]
+
 FLUX_MODELS = [
     "flux-2-pro",
     "flux-2-dev",
@@ -48,22 +53,22 @@ class FluxProvider(ImageProvider):
             request.aspect_ratio, request.resolution, provider="flux"
         )
 
-        kwargs: dict[str, object] = {
-            "model": self._together_model,
-            "prompt": request.prompt,
-            "width": width,
-            "height": height,
-            "n": 1,
-            "response_format": "b64_json",
-        }
-        if request.seed is not None:
-            kwargs["seed"] = request.seed
+        seed = request.seed if request.seed is not None else NOT_GIVEN
 
-        response = await self._client.images.generate(**kwargs)
+        response = await self._client.images.generate(
+            model=self._together_model,
+            prompt=request.prompt,
+            width=width,
+            height=height,
+            n=1,
+            response_format="b64_json",  # type: ignore[arg-type]
+            seed=seed,  # type: ignore[arg-type]
+        )
 
         item = response.data[0]
-        if item.b64_json:
-            image_data = base64.b64decode(item.b64_json)
+        b64_data = getattr(item, "b64_json", None)
+        if b64_data:
+            image_data = base64.b64decode(b64_data)
         else:
             msg = "Together AI did not return b64_json image data"
             raise RuntimeError(msg)

@@ -1,12 +1,19 @@
 """Cost calculation for image generation.
 
+Loads pricing data from a TOML file (``costs/data/prices.toml`` by default).
 Supports both token-based pricing (Gemini, OpenAI) and flat per-image
-pricing (FLUX via Together AI). Phase 3 will load from prices.toml.
+pricing (FLUX via Together AI).
+
+Set the ``BANANARAMA_PRICES`` environment variable to override the built-in
+pricing file with a custom TOML path.
 """
 
 from __future__ import annotations
 
+import os
+import tomllib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -30,50 +37,76 @@ class PerImagePricing:
     cost_per_image: float
 
 
-# Token-based prices (per million tokens).
-# Source: https://ai.google.dev/pricing (as of April 2026)
-MODEL_PRICES: dict[str, ModelPricing] = {
-    "gemini-3.1-flash-image-preview": ModelPricing(
-        input_text=0.50,
-        input_image=0.50,
-        output_text=3.00,
-        output_image=60.00,
-    ),
-    "gemini-3-pro-image-preview": ModelPricing(
-        input_text=1.25,
-        input_image=1.25,
-        output_text=5.00,
-        output_image=60.00,
-    ),
-    "gemini-2.5-flash-image": ModelPricing(
-        input_text=0.15,
-        input_image=0.15,
-        output_text=0.60,
-        output_image=60.00,
-    ),
-    # OpenAI: token-based pricing
-    # Source: https://developers.openai.com/api/docs/models/gpt-image-1
-    "gpt-image-1": ModelPricing(
-        input_text=5.00,
-        input_image=10.00,
-        output_text=0.0,
-        output_image=40.00,
-    ),
-    "gpt-image-1.5": ModelPricing(
-        input_text=5.00,
-        input_image=10.00,
-        output_text=0.0,
-        output_image=40.00,
-    ),
-}
+def _default_prices_path() -> Path:
+    """Return the path to the built-in prices.toml file."""
+    return Path(__file__).parent / "data" / "prices.toml"
 
-# Flat per-image prices (for providers without token-level billing).
-# Source: Together AI pricing (as of April 2026)
-PER_IMAGE_PRICES: dict[str, PerImagePricing] = {
-    "flux-2-pro": PerImagePricing(cost_per_image=0.05),
-    "flux-2-dev": PerImagePricing(cost_per_image=0.025),
-    "flux-2-schnell": PerImagePricing(cost_per_image=0.003),
-}
+
+def _load_prices(
+    path: Path | None = None,
+) -> tuple[dict[str, ModelPricing], dict[str, PerImagePricing]]:
+    """Load pricing data from a TOML file.
+
+    Returns a tuple of (token-based prices, per-image prices).
+    """
+    if path is None:
+        env_path = os.environ.get("BANANARAMA_PRICES")
+        path = Path(env_path) if env_path else _default_prices_path()
+
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+
+    models = data.get("models", {})
+
+    token_prices: dict[str, ModelPricing] = {}
+    image_prices: dict[str, PerImagePricing] = {}
+
+    for model_name, info in models.items():
+        pricing_model = info.get("pricing_model", "token")
+
+        if pricing_model == "token":
+            token_prices[model_name] = ModelPricing(
+                input_text=float(info["input_text"]),
+                input_image=float(info["input_image"]),
+                output_text=float(info["output_text"]),
+                output_image=float(info["output_image"]),
+            )
+        elif pricing_model == "per_image":
+            image_prices[model_name] = PerImagePricing(
+                cost_per_image=float(info["cost_per_image"]),
+            )
+
+    return token_prices, image_prices
+
+
+# Module-level caches loaded on first access.
+MODEL_PRICES: dict[str, ModelPricing] = {}
+PER_IMAGE_PRICES: dict[str, PerImagePricing] = {}
+_loaded = False
+
+
+def _ensure_loaded() -> None:
+    """Load prices from TOML if not already loaded."""
+    global _loaded
+    if not _loaded:
+        token, per_image = _load_prices()
+        MODEL_PRICES.update(token)
+        PER_IMAGE_PRICES.update(per_image)
+        _loaded = True
+
+
+def reload_prices(path: Path | None = None) -> None:
+    """Reload pricing data, optionally from a specific path.
+
+    Useful for testing or after updating the prices file.
+    """
+    global _loaded
+    MODEL_PRICES.clear()
+    PER_IMAGE_PRICES.clear()
+    token, per_image = _load_prices(path)
+    MODEL_PRICES.update(token)
+    PER_IMAGE_PRICES.update(per_image)
+    _loaded = True
 
 
 def compute_cost(result: ImageResult) -> float:
@@ -82,6 +115,8 @@ def compute_cost(result: ImageResult) -> float:
     Uses token-based pricing when available, falling back to flat per-image
     pricing. Returns 0.0 if the model has no known pricing.
     """
+    _ensure_loaded()
+
     # Try token-based pricing first
     prices = MODEL_PRICES.get(result.model)
     if prices is not None:
@@ -111,6 +146,8 @@ def estimate_cost(model: str) -> float | None:
     For token-based models this is a rough estimate assuming typical usage.
     For per-image models this is the exact flat rate.
     """
+    _ensure_loaded()
+
     per_image = PER_IMAGE_PRICES.get(model)
     if per_image is not None:
         return per_image.cost_per_image

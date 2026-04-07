@@ -6,6 +6,7 @@ a given model name. Providers register themselves when imported.
 
 from __future__ import annotations
 
+import enum
 import os
 from typing import TYPE_CHECKING
 
@@ -65,25 +66,56 @@ def get_provider_name(model: str) -> str:
     return display_names.get(cls_name, cls_name)
 
 
-def is_provider_available(model: str) -> bool:
-    """Check whether the SDK for a model's provider is importable."""
+class ProviderStatus(enum.Enum):
+    """Availability status for a model's provider."""
+
+    READY = "Ready"
+    NO_KEY = "No Key"
+    NO_SDK = "No SDK"
+
+
+_SDK_IMPORTS: dict[str, str] = {
+    "GeminiProvider": "google.genai",
+    "OpenAIProvider": "openai",
+    "FluxProvider": "together",
+}
+
+
+def check_provider_status(model: str) -> ProviderStatus:
+    """Return the availability status for a model's provider.
+
+    * **Ready** — SDK installed and API key set.
+    * **No Key** — SDK installed but API key missing.
+    * **No SDK** — SDK package not installed.
+    """
     entry = _PROVIDER_REGISTRY.get(model)
     if entry is None:
-        return False
-    provider_cls = entry[0]
+        return ProviderStatus.NO_SDK
+
+    provider_cls, api_key_env = entry
     cls_name = provider_cls.__name__
+    module_name = _SDK_IMPORTS.get(cls_name)
+
+    if module_name is None:
+        return ProviderStatus.NO_SDK
+
     try:
-        if cls_name == "GeminiProvider":
-            import google.genai  # noqa: F401
-        elif cls_name == "OpenAIProvider":
-            import openai  # noqa: F401
-        elif cls_name == "FluxProvider":
-            import together  # noqa: F401
-        else:
-            return False
-        return True
+        __import__(module_name)
     except ImportError:
-        return False
+        return ProviderStatus.NO_SDK
+
+    if not os.environ.get(api_key_env):
+        return ProviderStatus.NO_KEY
+
+    return ProviderStatus.READY
+
+
+def is_provider_available(model: str) -> bool:
+    """Check whether the SDK for a model's provider is importable.
+
+    Kept for backward compatibility; prefer :func:`check_provider_status`.
+    """
+    return check_provider_status(model) != ProviderStatus.NO_SDK
 
 
 def _register_all() -> None:
