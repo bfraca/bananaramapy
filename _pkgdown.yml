@@ -1,9 +1,0 @@
-url: https://hadley.github.io/bananarama/
-template:
-  bootstrap: 5
-  bslib:
-    bg: "#FFFDF5"
-    fg: "#3D3200"
-    primary: "#D4A017"
-    secondary: "#F5E6A3"
-    border-color: "#E8D47A"
