@@ -39,6 +39,10 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "openai" },
+    { name = "together" },
+]
+flux = [
+    { name = "together" },
 ]
 openai = [
     { name = "openai" },
@@ -62,8 +66,10 @@ requires-dist = [
     { name = "pillow", specifier = ">=10.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", specifier = ">=13.0" },
+    { name = "together", marker = "extra == 'all'", specifier = ">=1.0" },
+    { name = "together", marker = "extra == 'flux'", specifier = ">=1.0" },
 ]
-provides-extras = ["openai", "all"]
+provides-extras = ["openai", "flux", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -294,6 +300,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fc/f8/98eea607f65de6527f8a2e8885fc8015d3e6f5775df186e443e0964a11c3/distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed", size = 60722, upload-time = "2023-12-24T09:54:32.31Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/12/b3/231ffd4ab1fc9d679809f356cebee130ac7daa00d6d6f3206dd4fd137e9e/distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2", size = 20277, upload-time = "2023-12-24T09:54:30.421Z" },
+]
+
+[[package]]
+name = "filelock"
+version = "3.25.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/b8/00651a0f559862f3bb7d6f7477b192afe3f583cc5e26403b44e59a55ab34/filelock-3.25.2.tar.gz", hash = "sha256:b64ece2b38f4ca29dd3e810287aa8c48182bbecd1ae6e9ae126c9b35f1382694", size = 40480, upload-time = "2026-03-11T20:45:38.487Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/a5/842ae8f0c08b61d6484b52f99a03510a3a72d23141942d216ebe81fefbce/filelock-3.25.2-py3-none-any.whl", hash = "sha256:ca8afb0da15f229774c9ad1b455ed96e85a81373065fb10446672f64444ddf70", size = 26759, upload-time = "2026-03-11T20:45:37.437Z" },
 ]
 
 [[package]]
@@ -969,12 +984,47 @@ wheels = [
 ]
 
 [[package]]
+name = "tabulate"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/58/8c37dea7bbf769b20d58e7ace7e5edfe65b849442b00ffcdd56be88697c6/tabulate-0.10.0.tar.gz", hash = "sha256:e2cfde8f79420f6deeffdeda9aaec3b6bc5abce947655d17ac662b126e48a60d", size = 91754, upload-time = "2026-03-04T18:55:34.402Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl", hash = "sha256:f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3", size = 39814, upload-time = "2026-03-04T18:55:31.284Z" },
+]
+
+[[package]]
 name = "tenacity"
 version = "9.1.4"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
+]
+
+[[package]]
+name = "together"
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "click" },
+    { name = "distro" },
+    { name = "filelock" },
+    { name = "httpx" },
+    { name = "pillow" },
+    { name = "pydantic" },
+    { name = "rich" },
+    { name = "sniffio" },
+    { name = "tabulate" },
+    { name = "tqdm" },
+    { name = "types-pyyaml" },
+    { name = "types-tabulate" },
+    { name = "types-tqdm" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d7/f8/07e8390a0bc74d31c9e007dc37e383aaff26a3fb679be4a986595905bb75/together-2.7.0.tar.gz", hash = "sha256:3d0018d9bbbbbbb98e499285d128db0825484946a4fdfc378a7cf77563de76b7", size = 572632, upload-time = "2026-04-03T19:59:02.398Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/1d/4fd2726ce9dafec7959bb17250156a6e5b2bc410a77b3833330a97881fc1/together-2.7.0-py3-none-any.whl", hash = "sha256:2c557507bf990e02a7a4a0914c9bcabd09e524273a65af0793fcae46c43265ce", size = 336974, upload-time = "2026-04-03T19:59:01.088Z" },
 ]
 
 [[package]]
@@ -996,6 +1046,39 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7e/69/3c51b36d04da19b92f9e815be12753125bd8bc247ba0470a982e6979e71c/types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3", size = 17522, upload-time = "2025-09-15T03:01:00.728Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/e0/1eed384f02555dde685fff1a1ac805c1c7dcb6dd019c916fe659b1c1f9ec/types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6", size = 20338, upload-time = "2025-09-15T03:00:59.218Z" },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.33.0.20260402"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c1/7b/a06527d20af1441d813360b8e0ce152a75b7d8e4aab7c7d0a156f405d7ec/types_requests-2.33.0.20260402.tar.gz", hash = "sha256:1bdd3ada9b869741c5c4b887d2c8b4e38284a1449751823b5ebbccba3eefd9da", size = 23851, upload-time = "2026-04-02T04:19:55.942Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/65/3853bb6bac5ae789dc7e28781154705c27859eccc8e46282c3f36780f5f5/types_requests-2.33.0.20260402-py3-none-any.whl", hash = "sha256:c98372d7124dd5d10af815ee25c013897592ff92af27b27e22c98984102c3254", size = 20739, upload-time = "2026-04-02T04:19:54.955Z" },
+]
+
+[[package]]
+name = "types-tabulate"
+version = "0.10.0.20260308"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/44/d9e94f06010dde47b89892b2b133e3e54da729d8280ead4165dfdfa484ea/types_tabulate-0.10.0.20260308.tar.gz", hash = "sha256:724dcb1330ffba5f46d3cf6e29f45089fccb8e85801e6e7ac9efb1195bf7bea1", size = 8364, upload-time = "2026-03-08T03:59:59.472Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/74/3097387a6efcaef5ae92c7707a1a3e34a3881457d9ef1443a33681a77e08/types_tabulate-0.10.0.20260308-py3-none-any.whl", hash = "sha256:94a9795965bc6290f844d61e8680a1270040664b88fd12014624090fd847e13c", size = 8139, upload-time = "2026-03-08T03:59:58.678Z" },
+]
+
+[[package]]
+name = "types-tqdm"
+version = "4.67.3.20260402"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/42/e9e6688891d8db77b5795ec02b329524170892ff81bec63c4c4ca7425b30/types_tqdm-4.67.3.20260402.tar.gz", hash = "sha256:e0739f3bc5d1c801999a202f0537280aa1bc2e669c49f5be91bfb99376690624", size = 18077, upload-time = "2026-04-02T04:22:23.049Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/73/a6cf75de5be376d7b57ce6c934ae9bc90aa5be6ada4ac50a99ecbdf9763e/types_tqdm-4.67.3.20260402-py3-none-any.whl", hash = "sha256:b5d1a65fe3286e1a855e51ddebf63d3641daf9bad285afd1ec56808eb59df76e", size = 24562, upload-time = "2026-04-02T04:22:22.114Z" },
 ]
 
 [[package]]
