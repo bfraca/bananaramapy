@@ -8,8 +8,13 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from bananarama.costs.pricing import estimate_cost
 from bananarama.generate import bananarama
-from bananarama.models.registry import list_models
+from bananarama.models.registry import (
+    get_provider_name,
+    is_provider_available,
+    list_models,
+)
 
 console = Console()
 
@@ -72,23 +77,21 @@ def generate(
 
 @main.command("models")
 def models_cmd() -> None:
-    """List all available image generation models.
-
-    Shows model names and providers. Phase 3 will add pricing information.
-    """
+    """List all available image generation models with pricing and status."""
     table = Table(title="Available Models")
     table.add_column("Model", style="cyan")
     table.add_column("Provider", style="green")
+    table.add_column("Est. $/img", justify="right")
+    table.add_column("Status")
 
-    # Phase 3: add "Est. $/image" and "Notes" columns
     for model_name in list_models():
-        # Infer provider from model name
-        if model_name.startswith("gemini"):
-            provider = "Google Gemini"
-        elif model_name.startswith(("gpt-image", "dall-e")):
-            provider = "OpenAI"
-        else:
-            provider = "Unknown"
-        table.add_row(model_name, provider)
+        provider = get_provider_name(model_name)
+        available = is_provider_available(model_name)
+        status = "[green]Ready[/green]" if available else "[red]No SDK[/red]"
+
+        est = estimate_cost(model_name)
+        price_str = f"~${est:.3f}" if est is not None else "—"
+
+        table.add_row(model_name, provider, price_str, status)
 
     console.print(table)

@@ -2,23 +2,32 @@
 
 from __future__ import annotations
 
-from bananarama.costs.pricing import MODEL_PRICES, compute_cost
+from bananarama.costs.pricing import (
+    MODEL_PRICES,
+    PER_IMAGE_PRICES,
+    compute_cost,
+    estimate_cost,
+)
 from bananarama.models.base import ImageResult, TokenUsage
 
 
 class TestModelPrices:
-    def test_known_models(self):
-        expected = {
-            "gemini-3.1-flash-image-preview",
-            "gemini-3-pro-image-preview",
-            "gemini-2.5-flash-image",
-        }
-        assert set(MODEL_PRICES.keys()) == expected
+    def test_gemini_models(self):
+        assert "gemini-3.1-flash-image-preview" in MODEL_PRICES
+        assert "gemini-3-pro-image-preview" in MODEL_PRICES
+        assert "gemini-2.5-flash-image" in MODEL_PRICES
 
-    def test_all_have_fields(self):
+    def test_openai_models(self):
+        assert "gpt-image-1" in MODEL_PRICES
+        assert "gpt-image-1.5" in MODEL_PRICES
+
+    def test_flux_per_image_models(self):
+        assert "flux-2-pro" in PER_IMAGE_PRICES
+        assert "flux-2-dev" in PER_IMAGE_PRICES
+        assert "flux-2-schnell" in PER_IMAGE_PRICES
+
+    def test_all_token_prices_have_output_image(self):
         for model, prices in MODEL_PRICES.items():
-            assert prices.input_text > 0, f"{model} missing input_text"
-            assert prices.output_text > 0, f"{model} missing output_text"
             assert prices.output_image > 0, f"{model} missing output_image"
 
 
@@ -44,3 +53,26 @@ class TestComputeCost:
             output_tokens=TokenUsage(text=50, image=1000),
         )
         assert compute_cost(result) == 0.0
+
+    def test_per_image_pricing(self):
+        result = ImageResult(
+            image_data=b"fake",
+            model="flux-2-pro",
+            input_tokens=TokenUsage(),
+            output_tokens=TokenUsage(),
+        )
+        assert compute_cost(result) == 0.05
+
+
+class TestEstimateCost:
+    def test_known_token_model(self):
+        est = estimate_cost("gemini-3.1-flash-image-preview")
+        assert est is not None
+        assert est > 0
+
+    def test_known_per_image_model(self):
+        est = estimate_cost("flux-2-pro")
+        assert est == 0.05
+
+    def test_unknown_model(self):
+        assert estimate_cost("nonexistent") is None

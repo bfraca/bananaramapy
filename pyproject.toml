@@ -15,7 +15,8 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=1.50"]
-all = ["openai>=1.50"]
+flux = ["together>=1.0"]
+all = ["openai>=1.50", "together>=1.0"]
 
 [project.scripts]
 bananarama = "bananarama.cli:main"
@@ -73,7 +74,7 @@ warn_unused_configs = true
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["google.*", "PIL.*"]
+module = ["google.*", "PIL.*", "together.*", "openai.*", "httpx.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
