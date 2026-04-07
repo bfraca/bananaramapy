@@ -59,8 +59,6 @@ async def bananarama(
     out_path = Path(resolved_output_dir)
     if not out_path.is_absolute():
         out_path = config.base_dir / out_path
-    out_path.mkdir(parents=True, exist_ok=True)
-
     # Build tasks
     paths = compute_output_paths(config.images, out_path)
     tasks = build_tasks(config.images, paths, force=force)
@@ -70,10 +68,13 @@ async def bananarama(
             console.print("[dim]Nothing to generate (all images already exist).[/dim]")
         return all_output_paths(paths)
 
-    # Dry-run: show what would be generated and estimated costs
+    # Dry-run: show what would be generated and estimated costs (no side effects)
     if dry_run:
         _print_dry_run(tasks)
         return all_output_paths(paths)
+
+    # Create output directory only when we are actually generating
+    out_path.mkdir(parents=True, exist_ok=True)
 
     # Preprocess tasks (resolve placeholders, load reference images)
     for task in tasks:
