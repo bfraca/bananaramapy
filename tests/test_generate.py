@@ -4,8 +4,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from bananarama.config import ImageSpec
+from bananarama.generate import bananarama
 from bananarama.tasks import build_tasks, compute_output_paths
+
+
+class TestConcurrencyValidation:
+    def test_concurrency_zero_raises(self, tmp_path: Path) -> None:
+        config = tmp_path / "bananarama.yaml"
+        config.write_text("images:\n  - name: x\n    description: d\n")
+        with pytest.raises(ValueError, match="concurrency must be >= 1"):
+            import asyncio
+
+            asyncio.run(bananarama(config, concurrency=0))
+
+    def test_concurrency_negative_raises(self, tmp_path: Path) -> None:
+        config = tmp_path / "bananarama.yaml"
+        config.write_text("images:\n  - name: x\n    description: d\n")
+        with pytest.raises(ValueError, match="concurrency must be >= 1"):
+            import asyncio
+
+            asyncio.run(bananarama(config, concurrency=-1))
 
 
 class TestComputeOutputPaths:

@@ -9,10 +9,15 @@ from bananarama.config import (
     Defaults,
     _check_aspect_ratio,
     _check_resolution,
+    _coerce_ratio,
+    _levenshtein,
     _parse_defaults,
     _parse_image,
+    _suggest_model,
     parse_image_config,
     resolve_config_path,
+    validate_api_keys,
+    validate_model,
 )
 
 
@@ -148,6 +153,105 @@ class TestValidation:
                 {"name": "test", "description": "desc", "n": 0},
                 Defaults(),
             )
+
+
+class TestCoerceRatio:
+    def test_string_passthrough(self):
+        assert _coerce_ratio("16:9") == "16:9"
+        assert _coerce_ratio("1:1") == "1:1"
+
+    def test_sexagesimal_fix_16_9(self):
+        # PyYAML parses unquoted 16:9 as 969 (16*60+9)
+        assert _coerce_ratio(969) == "16:9"
+
+    def test_sexagesimal_fix_21_9(self):
+        assert _coerce_ratio(1269) == "21:9"
+
+    def test_sexagesimal_fix_all_ratios(self):
+        assert _coerce_ratio(61) == "1:1"
+        assert _coerce_ratio(123) == "2:3"
+        assert _coerce_ratio(182) == "3:2"
+        assert _coerce_ratio(184) == "3:4"
+        assert _coerce_ratio(243) == "4:3"
+        assert _coerce_ratio(245) == "4:5"
+        assert _coerce_ratio(304) == "5:4"
+        assert _coerce_ratio(556) == "9:16"
+
+    def test_unknown_int_becomes_str(self):
+        assert _coerce_ratio(42) == "42"
+
+
+class TestLevenshtein:
+    def test_identical(self):
+        assert _levenshtein("abc", "abc") == 0
+
+    def test_single_edit(self):
+        assert _levenshtein("abc", "ab") == 1
+        assert _levenshtein("abc", "axc") == 1
+
+    def test_empty(self):
+        assert _levenshtein("", "abc") == 3
+
+
+class TestSuggestModel:
+    def test_close_match(self):
+        known = ["gemini-3.1-flash-image-preview", "gpt-image-1"]
+        assert _suggest_model("gpt-image-1.5", known) == "gpt-image-1"
+
+    def test_no_close_match(self):
+        known = ["gemini-3.1-flash-image-preview"]
+        assert _suggest_model("totally-different-model-xyz", known) is None
+
+    def test_empty_known(self):
+        assert _suggest_model("anything", []) is None
+
+
+class TestValidateModel:
+    def test_known_model_no_warning(self):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            validate_model("gemini-3.1-flash-image-preview")
+
+    def test_unknown_model_warns(self):
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            validate_model("gemini-3.1-flash-image")
+            assert len(w) == 1
+            assert "Unknown model" in str(w[0].message)
+            assert "Did you mean" in str(w[0].message)
+
+    def test_totally_unknown_model_warns_without_suggestion(self):
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            validate_model("xyzzy-nonexistent-model-foobar")
+            assert len(w) == 1
+            assert "Unknown model" in str(w[0].message)
+            assert "Did you mean" not in str(w[0].message)
+
+
+class TestValidateApiKeys:
+    def test_warns_on_missing_key(self, monkeypatch):
+        import warnings
+
+        from bananarama.config import ImageSpec
+
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        images = [
+            ImageSpec(
+                name="test", description="desc", model="gemini-3.1-flash-image-preview"
+            )
+        ]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            validate_api_keys(images)
+            key_warnings = [x for x in w if "API key not set" in str(x.message)]
+            assert len(key_warnings) >= 1
 
 
 class TestParseImageConfig:
