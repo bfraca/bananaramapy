@@ -81,11 +81,13 @@ class OpenAIProvider(ImageProvider):
         output_tokens = TokenUsage()
         usage: Any = getattr(response, "usage", None)
         if usage is not None:
-            input_tokens.text = int(getattr(usage, "input_tokens", 0) or 0)
-            raw_image_input: Any = getattr(usage, "input_tokens_details", None)
-            input_tokens.image = (
-                int(raw_image_input) if isinstance(raw_image_input, int) else 0
+            total_input = int(getattr(usage, "input_tokens", 0) or 0)
+            details: Any = getattr(usage, "input_tokens_details", None)
+            image_count = (
+                int(getattr(details, "image_tokens", 0) or 0) if details else 0
             )
+            input_tokens.image = image_count
+            input_tokens.text = total_input - image_count
             output_tokens.image = int(getattr(usage, "output_tokens", 0) or 0)
 
         return ImageResult(
